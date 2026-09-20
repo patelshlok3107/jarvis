@@ -43,6 +43,11 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
           ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
+          # Ensure platform 34 installed
+          if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+          fi
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             echo "Generating wrapper..."
             gradle wrapper --gradle-version 8.7 || true
@@ -51,8 +56,9 @@ jobs:
           chmod +x ./gradlew || true
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
           ls -lh build.log || true
+          cat build.log | tail -n 80 || true
           ls -R app/build 2>&1 | head -n 100 || true
-          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then echo "APK NOT FOUND - build failed"; cat build.log | tail -n 100; exit 1; fi
+          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then echo "APK NOT FOUND"; exit 1; fi
       - name: Find APK
         id: apk
         run: |
@@ -60,6 +66,14 @@ jobs:
           echo "apk=$APK" >> $GITHUB_OUTPUT
           ls -lh "$APK" || ls -R app/build/outputs/apk 2>&1 | head -n 50 || true
           echo "APK=$APK"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: warn
       - name: Rename APK
         run: |
           APK="${{ steps.apk.outputs.apk }}"
