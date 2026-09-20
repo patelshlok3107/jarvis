@@ -37,13 +37,13 @@ jobs:
       - name: Build APK
         id: build
         run: |
+          set -o pipefail
           echo "=== Build start ==="
           ls -la gradle/wrapper/ 2>&1 | head -n 20 || true
           cat gradle/wrapper/gradle-wrapper.properties 2>&1 | head -n 20 || true
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
           ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
-          # Ensure platform 34 installed
           if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
             yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
             $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
@@ -54,7 +54,7 @@ jobs:
             ls -lh gradle/wrapper/ || true
           fi
           chmod +x ./gradlew || true
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log
           ls -lh build.log || true
           cat build.log | tail -n 80 || true
           ls -R app/build 2>&1 | head -n 100 || true
