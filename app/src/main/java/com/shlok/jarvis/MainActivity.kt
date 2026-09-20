@@ -24,7 +24,7 @@ import com.shlok.jarvis.voice.TtsManager
 class MainActivity : ComponentActivity() {
 
     private lateinit var prefs: JarvisPreferences
-    private var currentTab by mutableStateOf(0) // 0 home, 1 history, 2 rules, 3 settings, 4 onboarding
+    private var currentTab by mutableStateOf(0) // 0 home, 1 history, 2 rules, 3 settings, 4 onboarding, 5 phone connection
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         NavigationBar(containerColor = Color(0xFF0E1218)) {
                             NavigationBarItem(selected = currentTab==0, onClick = { currentTab=0 }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("JARVIS") })
+                            NavigationBarItem(selected = currentTab==5, onClick = { currentTab=5 }, icon = { Icon(Icons.Default.Phone, null) }, label = { Text("Phone") })
                             NavigationBarItem(selected = currentTab==1, onClick = { currentTab=1 }, icon = { Icon(Icons.Default.History, null) }, label = { Text("Activity") })
                             NavigationBarItem(selected = currentTab==2, onClick = { currentTab=2 }, icon = { Icon(Icons.Default.Person, null) }, label = { Text("Rules") })
                             NavigationBarItem(selected = currentTab==3, onClick = { currentTab=3 }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
@@ -56,11 +57,12 @@ class MainActivity : ComponentActivity() {
                 ) { pad ->
                     Box(Modifier.padding(pad)) {
                         when (currentTab) {
-                            0 -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=4 })
+                            0 -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
                             1 -> HistoryScreen()
                             2 -> CallRulesScreen(prefs)
                             3 -> SettingsScreen(prefs)
                             4 -> OnboardingScreen(onDone = { currentTab=0 })
+                            5 -> PhoneConnectionScreen()
                         }
                     }
                 }

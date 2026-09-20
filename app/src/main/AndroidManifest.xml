@@ -55,6 +55,26 @@
             </intent-filter>
         </service>
 
+        <!-- Real answering - ONLY works when JARVIS is Default Dialer (RoleManager.ROLE_DIALER) -->
+        <service
+            android:name=".service.JarvisConnectionService"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.JarvisInCallService"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+            <meta-data android:name="android.telecom.IN_CALL_SERVICE_UI" android:value="false" />
+        </service>
+
         <!-- Quick Settings Tile -->
         <service
             android:name=".tile.JarvisTileService"

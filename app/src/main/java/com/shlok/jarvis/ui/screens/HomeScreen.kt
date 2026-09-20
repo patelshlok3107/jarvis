@@ -19,9 +19,9 @@ import androidx.compose.ui.unit.sp
 import com.shlok.jarvis.data.CallDisposition
 import com.shlok.jarvis.data.JarvisStatus
 import com.shlok.jarvis.service.JarvisForegroundService
+import com.shlok.jarvis.service.RealCallMonitor
 import com.shlok.jarvis.storage.HistoryRepository
 import com.shlok.jarvis.storage.JarvisPreferences
-import com.shlok.jarvis.storage.PrefKeys
 import com.shlok.jarvis.ui.components.JarvisCore
 import com.shlok.jarvis.voice.SttManager
 import com.shlok.jarvis.voice.TtsManager
@@ -45,14 +45,17 @@ fun HomeScreen(
     var listening by remember { mutableStateOf(false) }
     var lastReply by remember { mutableStateOf<String?>(null) }
     var errorBanner by remember { mutableStateOf<String?>(null) }
-    var serviceOn by remember { mutableStateOf(false) }
     var historyPreview by remember { mutableStateOf(emptyList<com.shlok.jarvis.data.CallHistoryEntry>()) }
+    var realCallState by remember { mutableStateOf(RealCallMonitor.state.value) }
 
     LaunchedEffect(Unit) {
         prefs.statusFlow.collectLatest { status = it }
     }
     LaunchedEffect(Unit) {
-        // check service status via prefs or assume on after start
+        RealCallMonitor.start(ctx)
+        RealCallMonitor.state.collectLatest { realCallState = it }
+    }
+    LaunchedEffect(Unit) {
         HistoryRepository.historyFlow(ctx).collectLatest { historyPreview = it.take(3) }
     }
 
@@ -142,6 +145,25 @@ fun HomeScreen(
 
         Spacer(Modifier.height(12.dp))
 
+        // Real call monitor — ONLY shows when Android reports a real cellular call
+        if (realCallState != RealCallMonitor.CallState.IDLE) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2A1A)), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("REAL INCOMING CALL", color = Color(0xFF00E676), fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        when (realCallState) {
+                            RealCallMonitor.CallState.RINGING -> "Ringing - checking JARVIS status..."
+                            RealCallMonitor.CallState.OFFHOOK -> "In call"
+                            RealCallMonitor.CallState.HANDLED_BY_JARVIS -> "JARVIS HANDLING CALL"
+                            else -> ""
+                        }, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top=4.dp)
+                    )
+                    Text("Duration: live", color = Color.White.copy(0.5f), fontSize = 11.sp)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
         // Service toggle
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF111827))) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -157,20 +179,37 @@ fun HomeScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        // Recent activity
+        // REAL DEVICE TEST — replaces Simulate call
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1218))) {
+            Column(Modifier.padding(12.dp)) {
+                Text("REAL DEVICE TEST", color = Color(0xFF00E5FF), fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(6.dp))
+                Text("1. Enable BUSY MODE above.", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                Text("2. Close JARVIS and lock your phone.", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                Text("3. Call this phone from another phone.", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                Text("4. JARVIS will handle via CallScreeningService (silence + notification). With Default Dialer, caller hears TTS.", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("Test Status: Waiting for real incoming call...", color = Color.White.copy(0.4f), fontSize = 11.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                Text("No Simulate button — only a real cellular call triggers JARVIS.", color = Color(0xFFFFC107).copy(0.7f), fontSize = 10.sp, modifier = Modifier.padding(top=4.dp))
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Recent activity — only real calls from HistoryRepository
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Recent Activity", color = Color.White.copy(0.7f), fontSize = 11.sp, letterSpacing = 2.sp)
             TextButton(onClick = onOpenHistory) { Text("View all", color = Color(0xFF00E5FF), fontSize = 11.sp) }
         }
         if (historyPreview.isEmpty()) {
-            Text("No calls handled yet.", color = Color.White.copy(0.3f), fontSize = 12.sp, modifier = Modifier.padding(vertical=8.dp))
+            Text("No real calls yet. Enable BUSY and call this phone from another device.", color = Color.White.copy(0.3f), fontSize = 12.sp, modifier = Modifier.padding(vertical=8.dp))
         } else {
             historyPreview.forEach { e ->
                 val fmt = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(e.timestampMillis))
                 Row(Modifier.fillMaxWidth().padding(vertical=4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text(e.callerName ?: e.callerNumber, color = Color.White, fontSize = 13.sp)
-                        Text("${e.disposition} • $fmt" + if(e.isSimulated) " • SIMULATED" else "", color = Color.White.copy(0.45f), fontSize = 11.sp)
+                        Text("${e.disposition} • $fmt" + if(e.isSimulated) " • SIMULATED" else " • REAL", color = Color.White.copy(0.45f), fontSize = 11.sp)
                     }
                     Icon(when(e.disposition){ CallDisposition.ALLOWED->Icons.Default.Call; else->Icons.Default.CallEnd }, null, tint = Color.White.copy(0.4f), modifier = Modifier.size(18.dp))
                 }

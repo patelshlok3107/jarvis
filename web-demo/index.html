@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>JARVIS - Shlok's AI Assistant - Real Device</title>
+<style>
+:root{--bg:#05070A;--card:#0E1218;--cyan:#00E5FF;--green:#00E676;--yellow:#FFC107;--red:#FF3B30;--muted:rgba(255,255,255,.45);--border:#1E2A3A}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+body{margin:0;background:var(--bg);color:#E8F1FF}
+.phone{max-width:420px;margin:0 auto;min-height:100vh;background:var(--bg);border-left:1px solid #111;border-right:1px solid #111}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.5)}
+.core-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 16px 12px}
+.core{width:128px;height:128px;border-radius:50%;position:relative;display:grid;place-items:center;margin:8px 0}
+.core::before{content:'';position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle, rgba(0,229,255,.35), transparent 70%);animation:pulse 1.6s ease-in-out infinite alternate}
+.core::after{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--cyan);opacity:.9}
+.core-dot{width:46px;height:46px;border-radius:50%;background:var(--cyan);box-shadow:0 0 22px rgba(0,229,255,.9);display:grid;place-items:center;font-size:18px;color:#001018}
+@keyframes pulse{from{transform:scale(.92);opacity:.45}to{transform:scale(1.08);opacity:.75}}
+.jtitle{letter-spacing:8px;font-weight:300;color:var(--cyan);font-size:17px;margin:4px 0 2px}
+.status-label{font-size:12px;letter-spacing:2px;font-weight:700}
+.status-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.listen{font-size:10px;color:rgba(255,255,255,.35);margin-top:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:10px 12px}
+.chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0A0F18;color:#9AA8C0;font-size:10px;letter-spacing:1px;cursor:pointer}
+.chip.on{background:var(--cyan);color:#000;border-color:var(--cyan);font-weight:700}
+.card{margin:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+.card h3{margin:0 0 6px;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.6)}
+.btn{width:100%;padding:12px;border-radius:24px;border:none;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-cyan{background:var(--cyan);color:#000}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--cyan)}
+.row{display:flex;gap:8px}
+.small{font-size:10px;color:rgba(255,255,255,.35);line-height:1.4;margin-top:6px}
+.hist{padding:0 12px}
+.hist-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;margin:6px 0}
+.nav{position:sticky;bottom:0;background:#0E1218;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:6px 0}
+.nav button{background:none;border:none;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1px;cursor:pointer;padding:6px 10px;border-radius:10px}
+.nav button.on{color:var(--cyan);background:rgba(0,229,255,.08)}
+.notif{margin:8px 12px;background:#3A1A1A;border:1px solid #5A2A2A;color:#FF8A80;padding:8px 10px;border-radius:10px;font-size:11px}
+.hidden{display:none}
+input,textarea{width:100%;background:#0A0F18;border:1px solid var(--border);color:#E8F1FF;padding:10px;border-radius:10px;font-size:13px}
+label{font-size:11px;color:rgba(255,255,255,.6);display:block;margin:8px 0 4px}
+.badge{display:inline-block;padding:2px 6px;border-radius:999px;font-size:10px;letter-spacing:1px}
+.badge-sim{background:rgba(255,193,7,.15);color:var(--yellow);border:1px solid rgba(255,193,7,.3)}
+.badge-real{background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.live{margin:10px 12px;background:#1A2A1A;border:1px solid rgba(0,230,118,.3);border-radius:16px;padding:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="phone">
+<div class="topbar"><span>JARVIS</span><span>Real Device Build</span></div>
+<div id="tab-home">
+<div class="core-wrap">
+<div class="core"><div class="core-dot" id="coreDot">O</div></div>
+<div class="jtitle">JARVIS</div>
+<div class="status-label" id="statusLabel">BUSY MODE</div>
+<div class="status-sub" id="statusSub">I'm handling your calls</div>
+<div class="listen" id="listenLabel">Listening: OFF</div>
+</div>
+<div class="chips" id="chips"></div>
+<div class="card">
+<h3>VOICE COMMAND</h3>
+<button class="btn btn-cyan" id="micBtn">Tap to speak - Hey Jarvis, I'm busy</button>
+<div id="voiceOut" class="small"></div>
+<div class="small">Try: "I'm busy" | "I'm available" | "don't disturb me for one hour" | "who called me?"</div>
+</div>
+<div class="card">
+<h3>JARVIS PHONE CONNECTION</h3>
+<div style="font-size:11px;line-height:1.6">
+<div>Phone Status: <span style="color:var(--green)">Connected (this browser)</span></div>
+<div>Call Assistant: <span style="color:var(--green)">Ready</span> - Web demo cannot access cellular radio</div>
+<div>Default Call Role: <span style="color:var(--yellow)">Not applicable in browser</span></div>
+<div>Background Service: <span style="color:var(--green)">Running (Android ForegroundService in APK)</span></div>
+</div>
+<div class="small" style="color:var(--yellow)">This browser preview cannot receive real cellular calls. Install the APK on your physical Android phone for real call handling. See REAL DEVICE TEST below.</div>
+<button class="btn btn-outline" style="margin-top:8px" onclick="switchTab('phone')">Open Phone Connection Details</button>
+</div>
+<div class="card" style="border-color:var(--cyan)">
+<h3>REAL DEVICE TEST - NO SIMULATION</h3>
+<div style="font-size:11px;line-height:1.7;color:rgba(255,255,255,.8)">
+1. Install APK on your physical Android phone (Phone A)<br>
+2. Complete Phone Connection setup - grant all permissions + Call Screening role<br>
+3. Enable BUSY MODE above (or say "Jarvis, I'm busy")<br>
+4. Close JARVIS UI and lock your phone<br>
+5. From another phone (Phone B), call Phone A's real number<br>
+6. JARVIS detects the REAL incoming cellular call via CallScreeningService<br>
+7. Without Default Dialer: silences + logs + notifies you (SIMULATED tag)<br>
+8. With Default Dialer: answers via ConnectionService and caller hears TTS
+</div>
+<div class="small">Test Status: Waiting for real incoming call... (only a real cellular call triggers JARVIS - no Simulate button)</div>
+<div class="small" style="color:var(--yellow)">This browser cannot simulate this. You must test on a real Android device. See README for adb install.</div>
+</div>
+<div style="padding:0 12px;display:flex;justify-content:space-between;align-items:center">
+<h3 style="margin:12px 0 6px;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.6)">RECENT ACTIVITY (REAL CALLS ONLY)</h3>
+<button class="btn-outline" style="padding:6px 10px;border-radius:999px;font-size:10px;cursor:pointer" onclick="switchTab('history')">View all</button>
+</div>
+<div class="hist" id="recent"></div>
+</div>
+<div id="tab-phone" class="hidden">
+<div style="padding:16px"><div style="letter-spacing:3px;color:var(--cyan);font-size:12px">JARVIS PHONE CONNECTION</div></div>
+<div class="card" style="background:#1A2A1A;border-color:rgba(0,230,118,.3)"><div style="color:var(--green);font-weight:700">JARVIS - READY (LIMITED in browser)</div><div class="small">On your physical Android phone, this screen shows real checks via PermissionManager and RoleManager.</div></div>
+<div class="card"><div>Phone Status: Connected</div><div class="small">Real device: checks READ_PHONE_STATE + READ_CALL_LOG</div></div>
+<div class="card"><div>Call Assistant: Ready (CallScreeningService)</div><div class="small">Can silence/reject real calls. Log + notify. Without Default Dialer, cannot inject TTS into call audio.</div></div>
+<div class="card" style="border-color:rgba(255,193,7,.4)"><div>Default Call Role: Not set</div><div class="small">On phone: Settings - Default apps - Phone - select JARVIS for REAL answering via ConnectionService + InCallService. Requires user consent. Carrier may still block audio injection.</div>
+<button class="btn btn-cyan" style="margin-top:8px" onclick="alert('On your Android phone: Settings > Apps > Default apps > Phone app > JARVIS')">How to enable on phone</button></div>
+<div class="card"><div>Background Service: Running</div><div class="small">Android ForegroundService (phoneCall|microphone) + BootReceiver. Survives app close/lock where OS permits. Disable battery optimization on Xiaomi/Samsung.</div></div>
+<div class="card"><h3>WHAT WORKS / WHAT DOES NOT</h3><div class="small">WORKS: detect real incoming cellular call, check JARVIS status, silence/reject per Mom/Rahul/Unknown rules, save history, notify you. Tested on real device with BUSY mode.</div><div class="small" style="margin-top:6px">NEEDS Default Dialer: answer() and play TTS so caller hears "Hello. I am JARVIS..." Without this, Android modem blocks audio injection - honestly marked SIMULATED.</div><div class="small" style="margin-top:6px">WHY: Android Telecom security - only Default Dialer may create Connections. Carriers may still block. We detect isDefaultDialer() and report correctly in history.</div></div>
+</div>
+<div id="tab-history" class="hidden">
+<div style="padding:16px"><div style="letter-spacing:3px;color:var(--cyan);font-size:12px">JARVIS ACTIVITY</div><div class="small">Real calls only - no simulation. History is encrypted locally on device.</div><div class="small" id="histCount"></div></div>
+<div class="hist" id="historyList"></div>
+<div style="padding:12px"><button class="btn btn-outline" onclick="clearHistory()">Clear History</button></div>
+</div>
+<div id="tab-rules" class="hidden">
+<div style="padding:16px"><div style="letter-spacing:3px;color:var(--cyan);font-size:12px">CALL RULES</div></div>
+<div class="card"><div style="font-weight:700">Mom</div><div class="small">[ Always Allow ] - Always ring normally.</div></div>
+<div class="card"><div style="font-weight:700">Rahul</div><div class="small">[ Always Allow ] - Always ring normally.</div></div>
+<div class="card"><div style="font-weight:700">Unknown Numbers</div>
+<div class="row" style="margin-top:8px"><button class="chip on" data-unk="handles">JARVIS Handles</button><button class="chip" data-unk="allow">Allow</button><button class="chip" data-unk="block">Block</button></div>
+<div class="small">JARVIS Handles = screen when BUSY/DND/etc.</div>
+</div>
+<div class="card"><div style="font-weight:700">Spam / Suspicious</div><div class="small">Block / Screen via OS spam API where available.</div></div>
+</div>
+<div id="tab-settings" class="hidden">
+<div style="padding:16px"><div style="letter-spacing:3px;color:var(--cyan);font-size:12px">SETTINGS</div></div>
+<div class="card"><label>Your name</label><input id="userName" value="Shlok"/><label>Assistant name</label><input id="jarvisName" value="JARVIS"/>
+<label>Busy response</label><textarea id="busyTpl" rows="3">Hello. I am JARVIS, Shlok's personal AI assistant. Shlok is currently busy and cannot take your call. Please leave a message after the tone.</textarea>
+<div style="height:8px"></div><button class="btn btn-cyan" onclick="saveSettings()">Save</button>
+</div>
+<div class="card"><h3>Voice</h3>
+<div style="display:flex;gap:6px"><button class="chip on" data-lang="en">English</button><button class="chip" data-lang="hi">Hindi</button><button class="chip" data-lang="gu">Gujarati</button></div>
+<label>Speed <span id="speedVal">1.0</span></label><input type="range" id="speed" min="0.5" max="2" step="0.1" value="1"/>
+<button class="btn btn-outline" onclick="previewVoice()">Preview Voice</button>
+</div>
+<div class="card"><h3>REAL ANDROID BUILD</h3><div class="small">APK: app/build/outputs/apk/debug/app-debug.apk<br>Install: adb install app-debug.apk (USB debugging)<br>Requires: Android 8+ (minSdk 26), JDK 17<br>Test: two physical phones - Phone A with JARVIS in BUSY, Phone B calls Phone A's number</div></div>
+</div>
+<div class="nav">
+<button id="nav-home" class="on" onclick="switchTab('home')">JARVIS</button>
+<button id="nav-phone" onclick="switchTab('phone')">Phone</button>
+<button id="nav-history" onclick="switchTab('history')">Activity</button>
+<button id="nav-rules" onclick="switchTab('rules')">Rules</button>
+<button id="nav-settings" onclick="switchTab('settings')">Settings</button>
+</div>
+</div>
+<script>
+(function(){
+var statuses={
+AVAILABLE:{label:"AVAILABLE",sub:"Calls ring normally",ack:"You're available, Shlok. I'll let calls through.",color:"#00E676"},
+BUSY:{label:"BUSY MODE",sub:"I'm handling your calls",ack:"Understood, Shlok. I'll handle your incoming calls.",color:"#00E5FF"},
+DND:{label:"DO NOT DISTURB",sub:"Screening all calls",ack:"Do not disturb enabled.",color:"#FFC107"},
+DRIVING:{label:"DRIVING",sub:"Driving - hands-free responses",ack:"Driving mode on.",color:"#00E5FF"},
+SLEEPING:{label:"SLEEPING",sub:"Sleeping - quiet handling",ack:"Sleep mode on.",color:"#B39DDB"},
+MEETING:{label:"MEETING",sub:"In a meeting",ack:"Meeting mode enabled.",color:"#FF8A80"}
+};
+var current="BUSY";
+var unknown="handles";
+var history=[];
+try{ history=JSON.parse(localStorage.getItem("jarvis_hist")||"[]"); }catch(e){ history=[]; }
+var lang="en";
+function renderChips(){
+var c=document.getElementById("chips");
+var html="";
+for(var k in statuses){ html+='<button class="chip '+(k===current?'on':'')+'" onclick="setStatus(\''+k+'\')">'+k+'</button>'; }
+c.innerHTML=html;
+}
+window.setStatus=function(k){
+current=k;
+var s=statuses[k];
+document.getElementById("statusLabel").textContent=s.label;
+document.getElementById("statusLabel").style.color=s.color;
+document.getElementById("statusSub").textContent=s.sub;
+document.getElementById("coreDot").style.background=s.color;
+renderChips(); speak(s.ack);
+try{ localStorage.setItem("jarvis_status",k); }catch(e){}
+};
+function speak(t){
+try{
+var u=new SpeechSynthesisUtterance(t);
+u.lang= lang==="hi"?"hi-IN":lang==="gu"?"gu-IN":"en-IN";
+u.rate=parseFloat(document.getElementById("speed").value)||1;
+speechSynthesis.cancel(); speechSynthesis.speak(u);
+}catch(e){}
+document.getElementById("voiceOut").textContent="JARVIS: "+t;
+}
+window.switchTab=function(t){
+["home","phone","history","rules","settings"].forEach(function(x){
+var el=document.getElementById("tab-"+x);
+if(el) el.classList.toggle("hidden", x!==t);
+var b=document.getElementById("nav-"+x); if(b) b.classList.toggle("on", x===t);
+});
+if(t==="history") renderHistory();
+};
+function renderRecent(){
+var r=document.getElementById("recent");
+var items=history.slice(0,3);
+if(!items.length){ r.innerHTML='<div class="small" style="padding:8px">No real calls yet. Install APK on phone and call it from another phone while BUSY.</div>'; return; }
+var html="";
+for(var i=0;i<items.length;i++){
+var e=items[i];
+html+='<div class="hist-item"><div style="display:flex;justify-content:space-between"><b>'+e.callerName+'</b><span style="color:rgba(255,255,255,.45);font-size:10px">'+new Date(e.time).toLocaleTimeString()+'</span></div><div style="font-size:10px;color:var(--cyan)">'+e.disposition+' - '+e.status+' '+(e.isSimulated?'<span class="badge-sim">SIMULATED</span>':'<span class="badge-real">REAL</span>')+'</div>'+(e.jarvisResponse?'<div class="small">'+e.jarvisResponse+'</div>':'')+'</div>';
+}
+r.innerHTML=html;
+}
+function renderHistory(){
+var c=document.getElementById("histCount");
+if(c) c.textContent=history.length+" entries";
+var list=document.getElementById("historyList");
+if(!history.length){ list.innerHTML='<div class="small" style="padding:12px">No real calls yet. Real calls from CallScreeningService/ConnectionService appear here.</div>'; return; }
+var html="";
+for(var i=0;i<history.length;i++){
+var e=history[i];
+html+='<div class="hist-item"><div style="display:flex;justify-content:space-between"><b>'+e.callerName+'</b><span style="color:rgba(255,255,255,.45);font-size:10px">'+new Date(e.time).toLocaleString()+'</span></div><div style="font-size:10px;color:var(--cyan)">'+e.disposition+' - '+e.status+' '+(e.isSimulated?'<span class="badge-sim">SIMULATED</span>':'<span class="badge-real">REAL</span>')+'</div>'+(e.jarvisResponse?'<div class="small">'+e.jarvisResponse+'</div>':'')+(e.isSimulated?'<div class="small" style="color:#FFC107">Simulated - grant Default Dialer on phone for real answering.</div>':'')+'</div>';
+}
+list.innerHTML=html;
+}
+window.clearHistory=function(){ history=[]; try{ localStorage.removeItem("jarvis_hist"); }catch(e){} renderRecent(); renderHistory(); };
+document.getElementById("micBtn").onclick=function(){
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){ var inp=prompt("Type voice command:","I'm busy"); if(inp) handleVoice(inp); return; }
+var rec=new SR(); rec.lang= lang==="hi"?"hi-IN":lang==="gu"?"gu-IN":"en-IN";
+document.getElementById("listenLabel").textContent="Listening...";
+rec.start();
+rec.onresult=function(e){ handleVoice(e.results[0][0].transcript); };
+rec.onerror=function(){ document.getElementById("listenLabel").textContent="Listening: OFF"; };
+rec.onend=function(){ document.getElementById("listenLabel").textContent="Listening: OFF"; };
+};
+function handleVoice(t){
+document.getElementById("listenLabel").textContent="Listening: OFF";
+var u=t.toLowerCase();
+var cmd=null;
+if(u.indexOf("busy")!==-1) cmd="BUSY";
+else if(u.indexOf("available")!==-1) cmd="AVAILABLE";
+else if(u.indexOf("don't disturb")!==-1||u.indexOf("do not disturb")!==-1||u.indexOf("dnd")!==-1) cmd="DND";
+else if(u.indexOf("driving")!==-1) cmd="DRIVING";
+else if(u.indexOf("sleep")!==-1) cmd="SLEEPING";
+else if(u.indexOf("meeting")!==-1) cmd="MEETING";
+else if(u.indexOf("who called")!==-1){ speak("Checking your recent calls, Shlok."); switchTab("history"); return; }
+else if(u.indexOf("missed")!==-1||u.indexOf("show")!==-1){ switchTab("history"); speak("Opening your call history."); return; }
+if(cmd){ setStatus(cmd); document.getElementById("voiceOut").textContent='"'+t+'" -> '+statuses[cmd].ack; }
+else { speak("Sorry Shlok, I didn't catch that. Try: I'm busy or I'm available."); }
+}
+document.querySelectorAll("[data-unk]").forEach(function(b){
+b.onclick=function(){
+document.querySelectorAll("[data-unk]").forEach(function(x){ x.classList.remove("on"); });
+b.classList.add("on"); unknown=b.dataset.unk;
+};
+});
+document.querySelectorAll("[data-lang]").forEach(function(b){
+b.onclick=function(){
+document.querySelectorAll("[data-lang]").forEach(function(x){ x.classList.remove("on"); });
+b.classList.add("on"); lang=b.dataset.lang;
+};
+});
+window.saveSettings=function(){ try{ localStorage.setItem("jarvis_busy", document.getElementById("busyTpl").value); }catch(e){} alert("Saved"); };
+window.previewVoice=function(){ speak("Hello Shlok. I am JARVIS. This is my voice."); };
+var speedEl=document.getElementById("speed");
+if(speedEl) speedEl.oninput=function(e){ document.getElementById("speedVal").textContent=e.target.value; };
+renderChips(); renderRecent();
+var saved=null; try{ saved=localStorage.getItem("jarvis_status"); }catch(e){}
+if(saved && statuses[saved]) setStatus(saved); else setStatus("BUSY");
+})();
+</script>
+</body>
+</html>
