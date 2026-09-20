@@ -22,8 +22,8 @@
     <application
         android:name=".JarvisApplication"
         android:allowBackup="true"
-        android:icon="@android:mipmap/sym_def_app_icon"
-        android:roundIcon="@android:mipmap/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="JARVIS"
         android:theme="@android:style/Theme.NoTitleBar"
         android:supportsRtl="true">
@@ -79,7 +79,7 @@
         <service
             android:name=".tile.JarvisTileService"
             android:exported="true"
-            android:icon="@android:mipmap/sym_def_app_icon"
+            android:icon="@mipmap/ic_launcher"
             android:label="JARVIS"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

@@ -72,6 +72,16 @@ export default function Page() {
 
       {tab==="home" && (
         <div>
+          <div style={{margin:"12px",background:"linear-gradient(135deg,#0E1218 0%,#0A1A2A 100%)",border:"1px solid rgba(0,229,255,.3)",borderRadius:16,padding:16,textAlign:"center"}}>
+            <div style={{width:64,height:64,margin:"0 auto 8px",borderRadius:16,background:"rgba(0,229,255,.1)",border:"1px solid rgba(0,229,255,.4)",display:"grid",placeItems:"center",overflow:"hidden"}}>
+              <img src="/icon-192.png" alt="JARVIS" style={{width:48,height:48,objectFit:"contain"}} onError={(e:any)=>e.currentTarget.style.display='none'} />
+            </div>
+            <div style={{fontSize:11,letterSpacing:3,color:"rgba(255,255,255,.6)"}}>SHLOK'S AI ASSISTANT</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.7)",marginTop:4}}>Your personal AI mobile assistant — real cellular call handling</div>
+            <a href="https://github.com/patelshlok3107/jarvis/releases" target="_blank" rel="noopener" style={{display:"block",marginTop:12,padding:"14px 20px",background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,fontSize:14,letterSpacing:1,textDecoration:"none",textAlign:"center"}}>⬇ INSTALL JARVIS</a>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.45)",marginTop:6}}>Native Android APK — not just Add to Home Screen<br/>Vercel = UI & distribution · APK = Telecom & background services</div>
+          </div>
+
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 16px"}}>
             <div style={{width:128,height:128,borderRadius:"50%",border:`1.5px solid ${s.color}`,display:"grid",placeItems:"center",boxShadow:`0 0 22px ${s.color}66`,margin:8}}>
               <div style={{width:46,height:46,borderRadius:"50%",background:s.color,display:"grid",placeItems:"center"}}>O</div>
