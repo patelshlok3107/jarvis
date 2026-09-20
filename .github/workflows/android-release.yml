@@ -74,6 +74,23 @@ jobs:
           name: build-log
           path: build.log
           if-no-files-found: warn
+
+      - name: Show build log on failure
+        if: failure()
+        run: |
+          echo "=== BUILD LOG TAIL ==="
+          cat build.log 2>&1 | tail -n 150 || true
+          echo "=== END BUILD LOG ==="
+
+      - name: Commit build log for debugging
+        if: failure()
+        run: |
+          git config user.email "bot@jarvis.local"
+          git config user.name "Jarvis Bot"
+          cp build.log build-error.log || echo "no log"
+          git add build-error.log || true
+          git commit -m "ci: add build error log [skip ci]" || true
+          git push || true
       - name: Rename APK
         run: |
           APK="${{ steps.apk.outputs.apk }}"
