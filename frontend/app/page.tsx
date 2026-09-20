@@ -78,8 +78,8 @@ export default function Page() {
             </div>
             <div style={{fontSize:11,letterSpacing:3,color:"rgba(255,255,255,.6)"}}>SHLOK'S AI ASSISTANT</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,.7)",marginTop:4}}>Your personal AI mobile assistant — real cellular call handling</div>
-            <a href="https://github.com/patelshlok3107/jarvis/releases" target="_blank" rel="noopener" style={{display:"block",marginTop:12,padding:"14px 20px",background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,fontSize:14,letterSpacing:1,textDecoration:"none",textAlign:"center"}}>⬇ INSTALL JARVIS</a>
-            <div style={{fontSize:10,color:"rgba(255,255,255,.45)",marginTop:6}}>Native Android APK — not just Add to Home Screen<br/>Vercel = UI & distribution · APK = Telecom & background services</div>
+            <a href="/install" style={{display:"block",marginTop:12,padding:"14px 20px",background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,fontSize:14,letterSpacing:1,textDecoration:"none",textAlign:"center"}}>⬇ INSTALL JARVIS</a>
+            <div style={{fontSize:10,color:"rgba(255,255,255,.45)",marginTop:6}}>Native Android APK — not just Add to Home Screen<br/>Vercel = distribution · APK = Telecom & background<br/><span style={{color:"rgba(255,255,255,.35)"}}>APK: {process.env.NEXT_PUBLIC_ANDROID_APK_URL || "GitHub Releases"}</span></div>
           </div>
 
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 16px"}}>
