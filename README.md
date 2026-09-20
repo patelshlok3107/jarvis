@@ -1,6 +1,21 @@
-# JARVIS — Shlok's AI Assistant (Android, mobile-only)
+# JARVIS — Shlok's AI Assistant (Android + Cloud)
 
-> **Mobile-only, background-first, never a desktop app.** Install APK → grant permissions → close app → JARVIS keeps running via ForegroundService + CallScreeningService + Quick Settings Tile.
+> **Mobile-only, background-first, never a desktop app.** Android APK handles real cellular calls. Cloud (Vercel + Render) hosts the responsive web UI — no localhost, no PC required.
+
+## Deployment
+
+| Layer | Host | URL | Status |
+|-------|------|-----|--------|
+| Frontend | Vercel | `https://jarvis-frontend.vercel.app` (set via Vercel dashboard) | `npm run build` ✓ |
+| Backend | Render | `https://jarvis-backend.onrender.com` | `/health` → `{"status":"ok"}` ✓ |
+| Android | Device | APK `app/build/outputs/apk/debug/app-debug.apk` | Real Telecom |
+
+**Architecture**
+
+```
+Phone (browser) -> Vercel (Next.js 14, frontend/) -> Render (Express, backend/) -> AI
+Phone (native) -> Android Telecom (CallScreeningService / ConnectionService) -> JARVIS
+```
 
 ## Architecture (spec §14-15)
 
@@ -27,18 +42,35 @@ Android **forbids** third-party apps from answering a cellular call and injectin
 
 Never faked as "Call answered" when the call still rings.
 
-## Build
+## Quick Start
 
-Requirements: Android Studio Hedgehog+, JDK 17, Android SDK 34.
+### 1. Cloud (no localhost)
+
+**Frontend — Vercel**
+
+1. Push repo to GitHub
+2. Vercel → New Project → import repo → Root Directory `frontend` → add env `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com` → Deploy
+3. Frontend build: `next build` (5.25kB, static) — verified ✓
+
+**Backend — Render**
+
+1. Render → New Web Service → connect repo → Root `backend` → Build `npm install` → Start `npm start` → add env `ALLOWED_ORIGIN=https://your-frontend.vercel.app`, `AI_API_KEY` (optional) → Deploy
+2. Health: `GET https://your-backend.onrender.com/health` → `{"status":"ok"}` — verified ✓
+3. CORS: only Vercel origin allowed (not `*`)
+
+`.env.example` at root / `frontend/.env.example` / `backend/.env.example` — never commit secrets.
+
+### 2. Android APK (real calls)
+
+Requirements: Android Studio Hedgehog+, JDK 17, SDK 34.
 
 ```powershell
-# Windows
 .\gradlew assembleDebug
 # APK at app/build/outputs/apk/debug/app-debug.apk
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Open in Android Studio → Sync Gradle → Run on device (minSdk 26, target 34).
+Open in Android Studio → Sync → Run on device (minSdk 26, target 34).
 
 ## Phases implemented
 

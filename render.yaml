@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: jarvis-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        sync: false
+      - key: AI_ENDPOINT
+        sync: false
+      - key: AI_MODEL
+        sync: false
