@@ -30,18 +30,38 @@ jobs:
       - name: Grant Gradlew
         run: chmod +x ./gradlew || true
       - name: Build APK
+        id: build
+        continue-on-error: true
         run: |
+          echo "=== Build start ==="
+          ls -la gradle/wrapper/ 2>&1 | head -n 20 || true
+          cat gradle/wrapper/gradle-wrapper.properties 2>&1 | head -n 20 || true
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat local.properties
+          ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
           if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
-            ./gradlew :app:assembleDebug --stacktrace
+            ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
           else
-            gradle :app:assembleDebug --stacktrace
+            gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
           fi
+          ls -lh build.log || true
+          ls -R app/build 2>&1 | head -n 100 || true
       - name: Find APK
         id: apk
+        if: always()
         run: |
           APK=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
           echo "apk=$APK" >> $GITHUB_OUTPUT
-          ls -lh "$APK" || ls -R app/build/outputs/apk || true
+          ls -lh "$APK" || ls -R app/build/outputs/apk 2>&1 | head -n 50 || true
+          echo "APK=$APK"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: warn
       - name: Rename APK
         run: |
           APK="${{ steps.apk.outputs.apk }}"
