@@ -27,11 +27,15 @@ jobs:
           cache: gradle
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties && cat local.properties
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
       - name: Grant Gradlew
         run: chmod +x ./gradlew || true
       - name: Build APK
         id: build
-        continue-on-error: true
         run: |
           echo "=== Build start ==="
           ls -la gradle/wrapper/ 2>&1 | head -n 20 || true
@@ -39,29 +43,23 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
           ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
-          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
-            ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
-          else
-            gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Generating wrapper..."
+            gradle wrapper --gradle-version 8.7 || true
+            ls -lh gradle/wrapper/ || true
           fi
+          chmod +x ./gradlew || true
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log; echo "exit:$?" | tee -a build.log
           ls -lh build.log || true
           ls -R app/build 2>&1 | head -n 100 || true
+          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then echo "APK NOT FOUND - build failed"; cat build.log | tail -n 100; exit 1; fi
       - name: Find APK
         id: apk
-        if: always()
         run: |
           APK=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
           echo "apk=$APK" >> $GITHUB_OUTPUT
           ls -lh "$APK" || ls -R app/build/outputs/apk 2>&1 | head -n 50 || true
           echo "APK=$APK"
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build.log
-          if-no-files-found: warn
       - name: Rename APK
         run: |
           APK="${{ steps.apk.outputs.apk }}"
