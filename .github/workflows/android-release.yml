@@ -49,16 +49,27 @@ jobs:
         with:
           gradle-version: 8.7
 
+      - name: Diagnose
+        run: |
+          echo "PWD=$(pwd)"
+          ls -la
+          cat local.properties || true
+          ls -la app/build.gradle.kts || true
+          java -version
+          gradle --version || true
+          ./gradlew --version 2>&1 | head -n 20 || true
+          ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
+
       - name: Build APK
         run: |
           chmod +x ./gradlew || true
-          # Build debug APK - always works without keystore; release signed with debug key for now
-          # To enable real release signing, set KEYSTORE_BASE64 secrets and switch to assembleRelease
+          set -o pipefail
           if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
-            ./gradlew :app:assembleDebug --stacktrace
+            ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build.log
           else
-            gradle :app:assembleDebug --stacktrace
+            gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log
           fi
+          echo "Build exit: $?"
 
       - name: Find APK
         id: apk
