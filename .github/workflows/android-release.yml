@@ -29,31 +29,10 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Setup Android SDK
-        continue-on-error: true
+      - name: Create local.properties
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la $ANDROID_HOME/cmdline-tools 2>&1 | head -n 30 || true
-          ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
-          # Create local.properties for Gradle
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
-          # Try to install platforms if missing
-          SDKMGR=""
-          if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager";
-          elif [ -f "$ANDROID_HOME/cmdline-tools/bin/sdkmanager" ]; then SDKMGR="$ANDROID_HOME/cmdline-tools/bin/sdkmanager";
-          elif command -v sdkmanager >/dev/null 2>&1; then SDKMGR="sdkmanager"; fi
-          if [ -n "$SDKMGR" ]; then
-            echo "Using sdkmanager: $SDKMGR"
-            yes | $SDKMGR --licenses || true
-            $SDKMGR --list | head -n 20 || true
-            $SDKMGR "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
-            echo "sdkmanager install done"
-          else
-            echo "sdkmanager not found, using preinstalled SDK"
-          fi
-          ls -la $ANDROID_HOME/platforms/android-34 2>&1 | head -n 10 || echo "platform 34 missing"
 
       - name: Grant Gradlew
         run: chmod +x ./gradlew || echo "no gradlew, using gradle"
@@ -64,6 +43,11 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore || true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
 
       - name: Build APK
         run: |
