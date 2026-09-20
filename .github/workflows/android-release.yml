@@ -30,14 +30,17 @@ jobs:
           cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          # Ubuntu runner has Android SDK at $ANDROID_HOME - install required platforms
+          sdkmanager --version || true
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
 
       - name: Grant Gradlew
         run: chmod +x ./gradlew || echo "no gradlew, using gradle"
-        continue-on-error: true
 
       - name: Decode Keystore
-        if: env.KEYSTORE_BASE64 != ''
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
