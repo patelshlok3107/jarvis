@@ -4,6 +4,7 @@ import android.os.Build
 import android.telecom.Connection
 import android.telecom.ConnectionRequest
 import android.telecom.ConnectionService
+import android.telecom.DisconnectCause
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
 import android.util.Log
@@ -51,7 +52,7 @@ class JarvisConnectionService : ConnectionService() {
                 val status = prefs.statusFlow.first()
                 if (status == JarvisStatus.AVAILABLE) {
                     // Let system handle normally — do not intercept
-                    conn.setDisconnected(android.telecom.DisconnectCause(DisconnectCause.REJECTED))
+                    conn.setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
                     conn.destroy()
                     return@launch
                 }
@@ -82,11 +83,11 @@ class JarvisConnectionService : ConnectionService() {
                 )
                 HistoryRepository.add(applicationContext, entry)
                 NotificationHelper.notifyHandledCall(applicationContext, entry)
-                conn.setDisconnected(android.telecom.DisconnectCause(DisconnectCause.LOCAL))
+                conn.setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
                 conn.destroy()
             } catch (e: Exception) {
                 Log.e("JarvisConnection", "Error handling incoming", e)
-                try { conn.setDisconnected(android.telecom.DisconnectCause(DisconnectCause.ERROR)); conn.destroy() } catch (_: Exception) {}
+                try { conn.setDisconnected(DisconnectCause(DisconnectCause.ERROR)); conn.destroy() } catch (_: Exception) {}
             }
         }
         return conn
@@ -94,7 +95,7 @@ class JarvisConnectionService : ConnectionService() {
 
     private class JarvisConnection(private val number: String) : Connection() {
         override fun onAnswer() { setActive() }
-        override fun onDisconnect() { setDisconnected(android.telecom.DisconnectCause(DisconnectCause.LOCAL)); destroy() }
-        override fun onReject() { setDisconnected(android.telecom.DisconnectCause(DisconnectCause.REJECTED)); destroy() }
+        override fun onDisconnect() { setDisconnected(DisconnectCause(DisconnectCause.LOCAL)); destroy() }
+        override fun onReject() { setDisconnected(DisconnectCause(DisconnectCause.REJECTED)); destroy() }
     }
 }
