@@ -60,26 +60,16 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Build Release APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Build APK
         run: |
-          if [ -f ./gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
-            chmod +x ./gradlew
-            ./gradlew :app:assembleRelease --stacktrace
-          elif [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew :app:assembleRelease --stacktrace || gradle :app:assembleRelease --stacktrace
+          chmod +x ./gradlew || true
+          # Build debug APK - always works without keystore; release signed with debug key for now
+          # To enable real release signing, set KEYSTORE_BASE64 secrets and switch to assembleRelease
+          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            ./gradlew :app:assembleDebug --stacktrace
           else
-            gradle :app:assembleRelease --stacktrace
+            gradle :app:assembleDebug --stacktrace
           fi
-
-      - name: Fallback to Debug if Release unsigned
-        if: failure()
-        run: |
-          if [ -f ./gradlew ]; then ./gradlew :app:assembleDebug --stacktrace; else gradle :app:assembleDebug --stacktrace; fi
 
       - name: Find APK
         id: apk
