@@ -30,11 +30,20 @@ jobs:
           cache: gradle
 
       - name: Setup Android SDK
+        continue-on-error: true
         run: |
-          # Ubuntu runner has Android SDK at $ANDROID_HOME - install required platforms
-          sdkmanager --version || true
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la $ANDROID_HOME/cmdline-tools 2>&1 | head -n 20 || true
+          if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+          elif command -v sdkmanager >/dev/null 2>&1; then
+            yes | sdkmanager --licenses || true
+            sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+          else
+            echo "sdkmanager not found, relying on preinstalled SDK"
+          fi
 
       - name: Grant Gradlew
         run: chmod +x ./gradlew || echo "no gradlew, using gradle"
@@ -46,14 +55,23 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore || true
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
       - name: Build Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -f ./gradlew ]; then
+          if [ -f ./gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x ./gradlew
             ./gradlew :app:assembleRelease --stacktrace
+          elif [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew :app:assembleRelease --stacktrace || gradle :app:assembleRelease --stacktrace
           else
             gradle :app:assembleRelease --stacktrace
           fi
