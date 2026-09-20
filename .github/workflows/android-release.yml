@@ -34,16 +34,26 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la $ANDROID_HOME/cmdline-tools 2>&1 | head -n 20 || true
-          if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
-          elif command -v sdkmanager >/dev/null 2>&1; then
-            yes | sdkmanager --licenses || true
-            sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+          ls -la $ANDROID_HOME/cmdline-tools 2>&1 | head -n 30 || true
+          ls -la $ANDROID_HOME/platforms 2>&1 | head -n 20 || true
+          # Create local.properties for Gradle
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat local.properties
+          # Try to install platforms if missing
+          SDKMGR=""
+          if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager";
+          elif [ -f "$ANDROID_HOME/cmdline-tools/bin/sdkmanager" ]; then SDKMGR="$ANDROID_HOME/cmdline-tools/bin/sdkmanager";
+          elif command -v sdkmanager >/dev/null 2>&1; then SDKMGR="sdkmanager"; fi
+          if [ -n "$SDKMGR" ]; then
+            echo "Using sdkmanager: $SDKMGR"
+            yes | $SDKMGR --licenses || true
+            $SDKMGR --list | head -n 20 || true
+            $SDKMGR "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+            echo "sdkmanager install done"
           else
-            echo "sdkmanager not found, relying on preinstalled SDK"
+            echo "sdkmanager not found, using preinstalled SDK"
           fi
+          ls -la $ANDROID_HOME/platforms/android-34 2>&1 | head -n 10 || echo "platform 34 missing"
 
       - name: Grant Gradlew
         run: chmod +x ./gradlew || echo "no gradlew, using gradle"
