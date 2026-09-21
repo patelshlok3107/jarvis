@@ -90,7 +90,7 @@ jobs:
           git config user.email "bot@jarvis.local"
           git config user.name "Jarvis Bot"
           cp build.log build-error.log || echo "no log"
-          git add build-error.log || true
+          git add -f build-error.log || true
           git commit -m "ci: add build error log [skip ci]" || true
           git push || true
       - name: Rename APK
