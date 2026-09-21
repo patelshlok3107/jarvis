@@ -24,7 +24,7 @@ import com.shlok.jarvis.voice.TtsManager
 class MainActivity : ComponentActivity() {
 
     private lateinit var prefs: JarvisPreferences
-    private var currentTab by mutableStateOf(0) // 0 home, 1 history, 2 rules, 3 settings, 4 onboarding, 5 phone connection
+    private var currentTab by mutableStateOf(0) // 0 home, 1 history, 2 rules, 3 settings, 4 onboarding, 5 phone, 6 diagnostics
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
@@ -32,8 +32,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         prefs = JarvisPreferences(this)
         TtsManager.init(this)
-        // Auto-start foreground service (will show notification)
-        try { JarvisForegroundService.start(this) } catch (_: Exception) {}
+        // Log app start for diagnostics
+        try {
+            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "APP_STARTED", "MainActivity onCreate")
+        } catch (_: Exception) {}
+        // Auto-start foreground service (will show notification) - critical for background call handling
+        // This is independent of browser/Vercel; native services are the source of truth
+        try {
+            JarvisForegroundService.start(this)
+            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_START_REQUESTED", "from MainActivity")
+        } catch (e: Exception) {
+            try {
+                com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_START_FAILED", e.message ?: "unknown")
+            } catch (_: Exception) {}
+        }
 
         // Request base permissions on first launch
         requestIfNeeded()
@@ -50,7 +62,7 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(selected = currentTab==0, onClick = { currentTab=0 }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("JARVIS") })
                             NavigationBarItem(selected = currentTab==5, onClick = { currentTab=5 }, icon = { Icon(Icons.Default.Phone, null) }, label = { Text("Phone") })
                             NavigationBarItem(selected = currentTab==1, onClick = { currentTab=1 }, icon = { Icon(Icons.Default.History, null) }, label = { Text("Activity") })
-                            NavigationBarItem(selected = currentTab==2, onClick = { currentTab=2 }, icon = { Icon(Icons.Default.Person, null) }, label = { Text("Rules") })
+                            NavigationBarItem(selected = currentTab==6, onClick = { currentTab=6 }, icon = { Icon(Icons.Default.Build, null) }, label = { Text("Diag") })
                             NavigationBarItem(selected = currentTab==3, onClick = { currentTab=3 }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
                         }
                     }
@@ -63,6 +75,7 @@ class MainActivity : ComponentActivity() {
                             3 -> SettingsScreen(prefs)
                             4 -> OnboardingScreen(onDone = { currentTab=0 })
                             5 -> PhoneConnectionScreen()
+                            6 -> DiagnosticsScreen(prefs)
                         }
                     }
                 }

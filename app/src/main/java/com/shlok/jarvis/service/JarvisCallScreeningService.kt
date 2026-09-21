@@ -8,10 +8,12 @@ import android.util.Log
 import com.shlok.jarvis.data.*
 import com.shlok.jarvis.engine.JarvisEngine
 import com.shlok.jarvis.storage.HistoryRepository
+import com.shlok.jarvis.storage.JarvisLogger
 import com.shlok.jarvis.storage.JarvisPreferences
 import com.shlok.jarvis.storage.PrefKeys
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * LEGIT call handling via CallScreeningService (Android 24+).
@@ -39,47 +41,60 @@ class JarvisCallScreeningService : CallScreeningService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onScreenCall(details: Call.Details) {
+        // Critical: This is called by Android Telecom on a binder thread, even when app is in Doze/background.
+        // We must respond quickly (< 5s) and not depend on ForegroundService or browser.
         val number = details.handle?.schemeSpecificPart ?: "Unknown"
-        val isSpam = false // TODO: integrate with Spam API where available
+        val isSpam = false
+
+        // Log immediately for diagnostics
+        Log.i("JarvisScreening", "onScreenCall: $number direction=${details.callDirection} isIncoming=${details.callDirection == Call.Details.DIRECTION_INCOMING}")
+
+        // Only handle incoming calls
+        if (details.callDirection != Call.Details.DIRECTION_INCOMING) {
+            try { respondToCall(details, CallResponse.Builder().build()) } catch (_: Exception) {}
+            return
+        }
 
         scope.launch {
+            var responded = false
             try {
+                // Timeout handling: DataStore read must not block Telecom
                 val prefs = JarvisPreferences(applicationContext)
-                val status = prefs.statusFlow.first()
-                val unknownAction = when (prefs.dataFlow.first()[PrefKeys.UNKNOWN_ACTION]) {
-                    "ALLOW" -> UnknownCallerAction.ALLOW
-                    "BLOCK" -> UnknownCallerAction.BLOCK
-                    else -> UnknownCallerAction.JARVIS_HANDLES
-                }
-                val templates = prefs.templatesFlow().first()
-                // Contact rules: stored as simple JSON in DataStore — parse here if needed
-                val contactRules: List<ContactRule> = loadContactRules()
+                val status = withTimeoutOrNull(2000) { prefs.statusFlow.first() } ?: JarvisStatus.AVAILABLE
+                val unknownAction = withTimeoutOrNull(1000) {
+                    when (prefs.dataFlow.first()[PrefKeys.UNKNOWN_ACTION]) {
+                        "ALLOW" -> UnknownCallerAction.ALLOW
+                        "BLOCK" -> UnknownCallerAction.BLOCK
+                        else -> UnknownCallerAction.JARVIS_HANDLES
+                    }
+                } ?: UnknownCallerAction.JARVIS_HANDLES
+                val templates = withTimeoutOrNull(1000) { prefs.templatesFlow().first() } ?: ResponseTemplates()
 
+                val contactRules: List<ContactRule> = loadContactRules()
                 val isContact = isContact(applicationContext, number)
                 val engine = JarvisEngine(prefs)
                 val decision = engine.decide(status, number, contactRules, unknownAction, isContact, isSpam)
 
+                // For screening, isSimulated = false. Only true if we claimed to answer but couldn't.
+                // Screening (silence) is REAL, not simulated.
                 val canReallyAnswer = isDefaultDialer(applicationContext)
+                val isSimulatedForHistory = decision.shouldHandle && !canReallyAnswer && decision.disposition == CallDisposition.HANDLED_BY_JARVIS
 
                 val response: CallResponse = when (decision.disposition) {
                     CallDisposition.ALLOWED -> CallResponse.Builder().setDisallowCall(false).setRejectCall(false).setSkipCallLog(false).setSkipNotification(false).build()
                     CallDisposition.BLOCKED -> CallResponse.Builder().setDisallowCall(true).setRejectCall(true).setSkipCallLog(false).setSkipNotification(false).build()
                     CallDisposition.SCREENED -> CallResponse.Builder().setDisallowCall(false).setRejectCall(false).setSilenceCall(true).setSkipCallLog(false).setSkipNotification(false).build()
                     CallDisposition.HANDLED_BY_JARVIS -> {
-                        if (canReallyAnswer) {
-                            // Real handling path — requires ROLE_DIALER. Keep silenced for now until ConnectionService answers.
-                            CallResponse.Builder().setDisallowCall(false).setRejectCall(false).setSilenceCall(true).setSkipCallLog(false).setSkipNotification(false).build()
-                        } else {
-                            // Honest simulated handling: silence + notify user
-                            CallResponse.Builder().setDisallowCall(false).setRejectCall(false).setSilenceCall(true).setSkipCallLog(false).setSkipNotification(false).build()
-                        }
+                        // Screening is REAL: silence and notify. Answering with TTS requires Default Dialer
+                        // We silence here; if Default Dialer, ConnectionService will answer.
+                        CallResponse.Builder().setDisallowCall(false).setRejectCall(false).setSilenceCall(true).setSkipCallLog(false).setSkipNotification(false).build()
                     }
                     CallDisposition.MISSED -> CallResponse.Builder().build()
                 }
 
                 respondToCall(details, response)
+                responded = true
 
-                // History + notification (always, even when ALLOWED we log)
                 val jarvisSays = if (decision.shouldHandle) templates.forStatus(status) else null
                 val entry = CallHistoryEntry(
                     id = System.currentTimeMillis().toString(),
@@ -89,19 +104,24 @@ class JarvisCallScreeningService : CallScreeningService() {
                     status = status,
                     disposition = decision.disposition,
                     jarvisResponse = jarvisSays,
-                    transcript = null, // real transcript only if ROLE_DIALER + user enabled recording + legal
-                    isSimulated = decision.shouldHandle && !canReallyAnswer
+                    transcript = null,
+                    isSimulated = isSimulatedForHistory
                 )
                 HistoryRepository.add(applicationContext, entry)
                 if (decision.shouldHandle) {
                     NotificationHelper.notifyHandledCall(applicationContext, entry)
+                    JarvisLogger.log(applicationContext, "CALL_SCREENED", "number=$number status=$status disp=${decision.disposition} simulated=$isSimulatedForHistory")
+                } else {
+                    JarvisLogger.log(applicationContext, "CALL_ALLOWED", "number=$number status=$status")
                 }
-                Log.i("JarvisScreening", "Handled $number -> ${decision.disposition} sim=${entry.isSimulated} reason=${decision.reason}")
+                Log.i("JarvisScreening", "Handled $number -> ${decision.disposition} sim=$isSimulatedForHistory reason=${decision.reason} status=$status")
 
             } catch (e: Exception) {
                 Log.e("JarvisScreening", "Error screening call", e)
-                // Fail open: allow call rather than accidentally blocking
-                try { respondToCall(details, CallResponse.Builder().build()) } catch (_: Exception) {}
+                JarvisLogger.log(applicationContext, "CALL_SCREEN_ERROR", e.message ?: "unknown")
+                if (!responded) {
+                    try { respondToCall(details, CallResponse.Builder().build()) } catch (_: Exception) {}
+                }
             }
         }
     }

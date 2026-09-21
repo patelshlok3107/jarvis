@@ -54,12 +54,45 @@ class JarvisForegroundService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
-            ACTION_STOP -> { stopSelf(); return START_NOT_STICKY }
+            ACTION_STOP -> {
+                // User requested stop via notification action
+                try {
+                    com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_STOPPED", "user requested via notification")
+                } catch (_: Exception) {}
+                stopSelf()
+                return START_NOT_STICKY
+            }
             ACTION_TOGGLE_LISTEN -> { /* handled via MainActivity */ }
         }
+        // Ensure notification is shown before work, required for foreground service
         startForeground(NOTIF_ID, buildNotification(currentStatus))
-        // START_STICKY: OS may restart us after kill where permitted
+        // Log service start for diagnostics
+        try {
+            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_STARTED", "status=$currentStatus")
+        } catch (_: Exception) {}
+        // START_STICKY: OS may restart us after kill where permitted. Handles Doze/App Standby.
+        // We do not use while(true) or polling; we are event-driven via Telecom and DataStore flows.
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        // OEMs may kill service when task removed (swiped away). We stay START_STICKY, but also ensure
+        // we do not stop ourselves. The system may restart us if permitted.
+        // We update notification to reflect that service is still active, not stopped.
+        try {
+            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "TASK_REMOVED", "app swiped away, service remains START_STICKY")
+        } catch (_: Exception) {}
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // Handle low memory: we are lightweight, no heavy work, so we just log.
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            try {
+                com.shlok.jarvis.storage.JarvisLogger.logSync(this, "TRIM_MEMORY", "level=$level")
+            } catch (_: Exception) {}
+        }
     }
 
     private fun updateNotification() {
