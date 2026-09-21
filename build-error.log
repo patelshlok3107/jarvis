@@ -15,6 +15,7 @@ Downloading https://services.gradle.org/distributions/gradle-8.7-bin.zip
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
 > Task :app:javaPreCompileDebug
 > Task :app:mergeDebugShaders
 > Task :app:compileDebugShaders NO-SOURCE
@@ -22,29 +23,22 @@ Downloading https://services.gradle.org/distributions/gradle-8.7-bin.zip
 > Task :app:mergeDebugAssets
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
-> Task :app:mergeDebugStartupProfile
-> Task :app:mergeDebugJniLibFolders
-> Task :app:mergeDebugNativeLibs NO-SOURCE
-> Task :app:stripDebugDebugSymbols NO-SOURCE
-> Task :app:checkDebugDuplicateClasses
-> Task :app:validateSigningDebug
-> Task :app:processDebugManifestForPackage
-> Task :app:mergeExtDexDebug
-> Task :app:writeDebugAppMetadata
-> Task :app:mergeLibDexDebug
-> Task :app:writeDebugSigningConfigVersions
 > Task :app:processDebugResources
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeDebugStartupProfile
+> Task :app:compileDebugKotlin
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/ModeScheduler.kt:63:41 Unresolved reference: first
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/ModeScheduler.kt:65:17 Unresolved reference. None of the following candidates is applicable because of receiver type mismatch: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/ModeScheduler.kt:65:41 Unresolved reference: it
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/ModeScheduler.kt:66:72 Unresolved reference: size
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/VoiceAssistantService.kt:149:39 Unresolved reference: NotificationManager
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/VoiceAssistantService.kt:150:16 Unresolved reference: notify
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/ui/screens/HomeScreenSimple.kt:56:9 Try catch is not supported around composable function invocations.
 
+> Task :app:mergeExtDexDebug
 > Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:94:29 Try catch is not supported around composable function invocations.
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:108:71 Unresolved reference: dp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:110:101 Unresolved reference: sp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:111:67 Unresolved reference: dp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:112:110 Unresolved reference: sp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:113:66 Unresolved reference: dp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:114:130 Unresolved reference: sp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:115:67 Unresolved reference: dp
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:117:66 Unresolved reference: dp
 
 FAILURE: Build failed with an exception.
 
@@ -253,5 +247,5 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 	... 2 more
 
 
-BUILD FAILED in 1m 30s
-28 actionable tasks: 28 executed
+BUILD FAILED in 1m 32s
+23 actionable tasks: 23 executed
