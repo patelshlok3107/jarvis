@@ -1,9 +1,9 @@
 "use client";
 
-const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.1.0.apk";
-const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/download/v1.1.0/JARVIS-v1.1.0.apk";
+const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.1.5.apk";
+const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/download/v1.1.5/JARVIS-v1.1.5.apk";
 const RELEASE_URL = "https://github.com/patelshlok3107/jarvis/releases";
-const VERSION = "1.1.0";
+const VERSION = "1.1.5";
 const APK_SHA256 = "pending - will be updated after build";
 
 export default function InstallPage() {
@@ -35,7 +35,7 @@ export default function InstallPage() {
         <div style={{fontSize:11,letterSpacing:1,color:"#FFC107",fontWeight:700}}>DOWNLOAD COMPLETE? NEXT STEPS</div>
         <div style={{fontSize:11,lineHeight:1.6,marginTop:8,color:"rgba(255,255,255,.7)"}}>
           After download reaches 100%:<br/>
-          1. Swipe down notification → tap <b>JARVIS-v1.0.0.apk</b> → <b>Install</b><br/>
+          1. Swipe down notification → tap <b>JARVIS-v1.1.5.apk</b> → <b>Install</b><br/>
           2. If not in notifications: open <b>Files → Downloads</b> → tap APK<br/>
           3. If blocked: <b>Settings → Allow from this source</b> (Chrome) → then Install<br/>
           4. If update fails: <b>Uninstall old JARVIS first</b> (different signature) → then install
