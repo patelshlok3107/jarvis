@@ -24,66 +24,27 @@ Downloading https://services.gradle.org/distributions/gradle-8.7-bin.zip
 > Task :app:desugarDebugFileDependencies
 > Task :app:mergeDebugStartupProfile
 > Task :app:mergeDebugJniLibFolders
-> Task :app:checkDebugDuplicateClasses
 > Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:checkDebugDuplicateClasses
+> Task :app:validateSigningDebug
 > Task :app:processDebugManifestForPackage
 > Task :app:mergeExtDexDebug
-> Task :app:mergeLibDexDebug
-> Task :app:stripDebugDebugSymbols NO-SOURCE
-> Task :app:processDebugResources
-> Task :app:validateSigningDebug
 > Task :app:writeDebugAppMetadata
+> Task :app:mergeLibDexDebug
 > Task :app:writeDebugSigningConfigVersions
+> Task :app:processDebugResources
 
 > Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/BootReceiver.kt:24:48 Unresolved reference: launch
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/BootReceiver.kt:33:48 Suspend function 'withTimeoutOrNull' should be called only from a coroutine or another suspend function
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/BootReceiver.kt:33:91 Unresolved reference. None of the following candidates is applicable because of receiver type mismatch: 
-public fun <T> Array<out TypeVariable(T)>.first(): TypeVariable(T) defined in kotlin.collections
-public inline fun <T> Array<out TypeVariable(T)>.first(predicate: (TypeVariable(T)) -> Boolean): TypeVariable(T) defined in kotlin.collections
-public fun BooleanArray.first(): Boolean defined in kotlin.collections
-public inline fun BooleanArray.first(predicate: (Boolean) -> Boolean): Boolean defined in kotlin.collections
-public fun ByteArray.first(): Byte defined in kotlin.collections
-public inline fun ByteArray.first(predicate: (Byte) -> Boolean): Byte defined in kotlin.collections
-public fun CharArray.first(): Char defined in kotlin.collections
-public inline fun CharArray.first(predicate: (Char) -> Boolean): Char defined in kotlin.collections
-public fun CharSequence.first(): Char defined in kotlin.text
-public inline fun CharSequence.first(predicate: (Char) -> Boolean): Char defined in kotlin.text
-public fun DoubleArray.first(): Double defined in kotlin.collections
-public inline fun DoubleArray.first(predicate: (Double) -> Boolean): Double defined in kotlin.collections
-public fun FloatArray.first(): Float defined in kotlin.collections
-public inline fun FloatArray.first(predicate: (Float) -> Boolean): Float defined in kotlin.collections
-public fun IntArray.first(): Int defined in kotlin.collections
-public inline fun IntArray.first(predicate: (Int) -> Boolean): Int defined in kotlin.collections
-public fun LongArray.first(): Long defined in kotlin.collections
-public inline fun LongArray.first(predicate: (Long) -> Boolean): Long defined in kotlin.collections
-public fun ShortArray.first(): Short defined in kotlin.collections
-public inline fun ShortArray.first(predicate: (Short) -> Boolean): Short defined in kotlin.collections
-public inline fun UByteArray.first(): UByte defined in kotlin.collections
-public inline fun UByteArray.first(predicate: (UByte) -> Boolean): UByte defined in kotlin.collections
-public inline fun UIntArray.first(): UInt defined in kotlin.collections
-public inline fun UIntArray.first(predicate: (UInt) -> Boolean): UInt defined in kotlin.collections
-public inline fun ULongArray.first(): ULong defined in kotlin.collections
-public inline fun ULongArray.first(predicate: (ULong) -> Boolean): ULong defined in kotlin.collections
-public inline fun UShortArray.first(): UShort defined in kotlin.collections
-public inline fun UShortArray.first(predicate: (UShort) -> Boolean): UShort defined in kotlin.collections
-public fun <T> Iterable<TypeVariable(T)>.first(): TypeVariable(T) defined in kotlin.collections
-public inline fun <T> Iterable<TypeVariable(T)>.first(predicate: (TypeVariable(T)) -> Boolean): TypeVariable(T) defined in kotlin.collections
-public fun <T> List<TypeVariable(T)>.first(): TypeVariable(T) defined in kotlin.collections
-public fun CharProgression.first(): Char defined in kotlin.ranges
-public fun IntProgression.first(): Int defined in kotlin.ranges
-public fun LongProgression.first(): Long defined in kotlin.ranges
-public fun UIntProgression.first(): UInt defined in kotlin.ranges
-public fun ULongProgression.first(): ULong defined in kotlin.ranges
-public fun <T> Sequence<TypeVariable(T)>.first(): TypeVariable(T) defined in kotlin.sequences
-public inline fun <T> Sequence<TypeVariable(T)>.first(predicate: (TypeVariable(T)) -> Boolean): TypeVariable(T) defined in kotlin.sequences
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/service/BootReceiver.kt:37:67 Suspend function 'log' should be called only from a coroutine or another suspend function
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/storage/JarvisLogger.kt:50:40 Unresolved reference: launch
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/storage/JarvisLogger.kt:51:13 Suspend function 'log' should be called only from a coroutine or another suspend function
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/ui/screens/DiagnosticsScreen.kt:121:9 Unexpected token
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/ui/screens/DiagnosticsScreen.kt:121:12 Expecting an element
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/ui/screens/DiagnosticsScreen.kt:119:16 Type mismatch: inferred type is Unit but Boolean was expected
-e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/ui/screens/DiagnosticsScreen.kt:121:10 Unresolved reference: pm
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:94:29 Try catch is not supported around composable function invocations.
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:108:71 Unresolved reference: dp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:110:101 Unresolved reference: sp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:111:67 Unresolved reference: dp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:112:110 Unresolved reference: sp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:113:66 Unresolved reference: dp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:114:130 Unresolved reference: sp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:115:67 Unresolved reference: dp
+e: file:///home/runner/work/jarvis/jarvis/app/src/main/java/com/shlok/jarvis/MainActivity.kt:117:66 Unresolved reference: dp
 
 FAILURE: Build failed with an exception.
 
@@ -292,5 +253,5 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 	... 2 more
 
 
-BUILD FAILED in 1m 46s
+BUILD FAILED in 1m 30s
 28 actionable tasks: 28 executed
