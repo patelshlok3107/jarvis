@@ -19,11 +19,22 @@ export default function InstallPage() {
       </div>
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:8}}>
-        <a href={APK_URL} download={`JARVIS-v${VERSION}.apk`} style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
-        <button onClick={()=>{ window.location.href = APK_URL; }} style={{width:"100%",marginTop:10,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer"}}>If download doesn't start, tap here</button>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • 17.5 MB • com.shlok.jarvis • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
+        <a href={APK_URL} download={`JARVIS-v${VERSION}.apk`} target="_blank" rel="noopener" style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
+        <button onClick={()=>{ window.open(APK_URL, '_blank'); }} style={{width:"100%",marginTop:10,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer"}}>If download doesn't start, tap here (opens GitHub)</button>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • com.shlok.jarvis • 17.5 MB • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>Direct: {APK_URL}</div>
         <a href={RELEASE_URL} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",fontSize:11,color:"#00E5FF",marginTop:10,textDecoration:"none"}}>View all releases on GitHub →</a>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6}}>Direct link: {APK_URL}</div>
+      </div>
+
+      <div style={{background:"#1A1A0A",border:"1px solid rgba(255,193,7,.3)",borderRadius:16,padding:16,marginTop:12}}>
+        <div style={{fontSize:11,letterSpacing:1,color:"#FFC107",fontWeight:700}}>DOWNLOAD COMPLETE? NEXT STEPS</div>
+        <div style={{fontSize:11,lineHeight:1.6,marginTop:8,color:"rgba(255,255,255,.7)"}}>
+          After download reaches 100%:<br/>
+          1. Swipe down notification → tap <b>JARVIS-v1.0.0.apk</b> → <b>Install</b><br/>
+          2. If not in notifications: open <b>Files → Downloads</b> → tap APK<br/>
+          3. If blocked: <b>Settings → Allow from this source</b> (Chrome) → then Install<br/>
+          4. If update fails: <b>Uninstall old JARVIS first</b> (different signature) → then install
+        </div>
       </div>
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:12}}>

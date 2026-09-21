@@ -106,8 +106,29 @@ jobs:
         run: |
           APK="JARVIS-v${{ env.VERSION }}.apk"
           if [ ! -f "$APK" ]; then echo "APK missing"; exit 1; fi
-          if command -v apksigner >/dev/null 2>&1; then apksigner verify --print-certs "$APK" || echo "verify warning"; fi
-          if command -v aapt >/dev/null 2>&1; then aapt dump badging "$APK" | head -n 20; fi
+          echo "=== APK Verification ==="
+          ls -lh "$APK"
+          sha256sum "$APK" | tee -a build.log
+          echo "SHA-256: $(sha256sum "$APK" | cut -d' ' -f1)" >> $GITHUB_ENV
+          # Find apksigner and aapt
+          APKSIGNER=$(find $ANDROID_HOME -name apksigner -type f 2>/dev/null | head -n 1)
+          AAPT=$(find $ANDROID_HOME -name aapt -type f 2>/dev/null | head -n 1)
+          if [ -n "$APKSIGNER" ]; then
+            echo "Verifying with apksigner: $APKSIGNER"
+            $APKSIGNER verify --verbose --print-certs "$APK" 2>&1 | tee -a build.log || echo "apksigner verify failed"
+          else
+            echo "apksigner not found, checking zip structure"
+            unzip -l "$APK" | head -n 20
+          fi
+          if [ -n "$AAPT" ]; then
+            echo "aapt dump badging:"
+            $AAPT dump badging "$APK" 2>&1 | head -n 30 | tee -a build.log
+          else
+            echo "aapt not found"
+          fi
+          # Check if APK is installable (universal, not split)
+          if unzip -l "$APK" | grep -q "splits/"; then echo "WARNING: APK appears to be split"; fi
+          echo "APK verification done"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
