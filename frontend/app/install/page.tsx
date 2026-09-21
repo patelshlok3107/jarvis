@@ -4,8 +4,8 @@ const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/p
 const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/download/v1.1.5/JARVIS-v1.1.5.apk";
 const RELEASE_URL = "https://github.com/patelshlok3107/jarvis/releases";
 const VERSION = "1.1.5";
-const APK_SHA256 = "pending - will be updated after build";
-const APK_SIZE = "17.58 MB";
+const APK_SHA256 = "f706265f1d20633368226541fe54b13d6350f6c7ef48e915c551466e4f1556c6";
+const APK_SIZE = "17.58 MB (17580003 bytes)";
 
 export default function InstallPage() {
   const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
@@ -28,7 +28,7 @@ export default function InstallPage() {
           <a href={APK_FALLBACK} target="_blank" rel="noopener" style={{flex:1,padding:12,background:"transparent",border:"1px solid #1E2A3A",color:"rgba(255,255,255,.6)",borderRadius:999,fontWeight:700,textAlign:"center",textDecoration:"none",fontSize:11}}>GitHub direct</a>
         </div>
         <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • {APK_SIZE} • SHA-256: {APK_SHA256.slice(0,16)}… • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>If download stops at 17.52 MB, it's complete (17.53 MB rounded). Check Files → Downloads → tap APK.</div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>Verified: {APK_SIZE} • SHA-256: {APK_SHA256} • If size differs, retry download.</div>
         <a href={RELEASE_URL} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",fontSize:11,color:"#00E5FF",marginTop:10,textDecoration:"none"}}>View all releases on GitHub →</a>
       </div>
 
