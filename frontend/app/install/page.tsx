@@ -5,6 +5,7 @@ const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/download
 const RELEASE_URL = "https://github.com/patelshlok3107/jarvis/releases";
 const VERSION = "1.1.5";
 const APK_SHA256 = "pending - will be updated after build";
+const APK_SIZE = "17.58 MB";
 
 export default function InstallPage() {
   const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
