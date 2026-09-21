@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
         android:name=".JarvisApplication"
@@ -98,6 +100,19 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!-- Voice Assistant Service - independent from UI, handles Hey JARVIS -->
+        <service
+            android:name=".service.VoiceAssistantService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <!-- Mode scheduler - AlarmManager triggers for scheduled modes -->
+        <receiver
+            android:name=".service.ModeAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 </manifest>

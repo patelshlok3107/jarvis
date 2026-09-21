@@ -5,6 +5,7 @@ import android.os.Build
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import android.util.Log
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.shlok.jarvis.data.*
 import com.shlok.jarvis.engine.JarvisEngine
 import com.shlok.jarvis.storage.HistoryRepository
@@ -58,9 +59,15 @@ class JarvisCallScreeningService : CallScreeningService() {
         scope.launch {
             var responded = false
             try {
-                // Timeout handling: DataStore read must not block Telecom
+                // Use SmartModeEngine - check scheduled mode first, then current status
                 val prefs = JarvisPreferences(applicationContext)
-                val status = withTimeoutOrNull(2000) { prefs.statusFlow.first() } ?: JarvisStatus.AVAILABLE
+                val smartEngine = com.shlok.jarvis.engine.SmartModeEngine(prefs)
+                // Check for active scheduled mode (highest priority if within time window)
+                val scheduled = withTimeoutOrNull(1000) { com.shlok.jarvis.storage.ScheduledModeStore.getActive(applicationContext) }
+                val smartMode = scheduled?.mode ?: withTimeoutOrNull(2000) {
+                    smartEngine.getCurrentMode(applicationContext)
+                } ?: com.shlok.jarvis.engine.SmartMode.AVAILABLE
+                val status = smartMode.status
                 val unknownAction = withTimeoutOrNull(1000) {
                     when (prefs.dataFlow.first()[PrefKeys.UNKNOWN_ACTION]) {
                         "ALLOW" -> UnknownCallerAction.ALLOW
@@ -68,6 +75,13 @@ class JarvisCallScreeningService : CallScreeningService() {
                         else -> UnknownCallerAction.JARVIS_HANDLES
                     }
                 } ?: UnknownCallerAction.JARVIS_HANDLES
+                // Use privacy-aware response generator
+                val privacy = withTimeoutOrNull(1000) {
+                    try {
+                        val p = prefs.dataFlow.first()[stringPreferencesKey("privacy_level")] ?: "MEDIUM"
+                        com.shlok.jarvis.engine.PrivacyLevel.valueOf(p)
+                    } catch (_: Exception) { com.shlok.jarvis.engine.PrivacyLevel.MEDIUM }
+                } ?: com.shlok.jarvis.engine.PrivacyLevel.MEDIUM
                 val templates = withTimeoutOrNull(1000) { prefs.templatesFlow().first() } ?: ResponseTemplates()
 
                 val contactRules: List<ContactRule> = loadContactRules()
@@ -95,7 +109,12 @@ class JarvisCallScreeningService : CallScreeningService() {
                 respondToCall(details, response)
                 responded = true
 
-                val jarvisSays = if (decision.shouldHandle) templates.forStatus(status) else null
+                val jarvisSays = if (decision.shouldHandle) {
+                    // Use SmartMode privacy-aware generator if available, else fallback to templates
+                    try {
+                        com.shlok.jarvis.engine.ResponseGenerator.generate(smartMode, privacy, lookupContactName(applicationContext, number))
+                    } catch (_: Exception) { templates.forStatus(status) }
+                } else null
                 val entry = CallHistoryEntry(
                     id = System.currentTimeMillis().toString(),
                     callerName = lookupContactName(applicationContext, number),

@@ -1,11 +1,10 @@
 "use client";
 
-const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/download/v1.0.1/JARVIS-v1.0.1.apk";
-const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.0.1.apk";
+const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.1.0.apk";
+const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/download/v1.1.0/JARVIS-v1.1.0.apk";
 const RELEASE_URL = "https://github.com/patelshlok3107/jarvis/releases";
-const VERSION = "1.0.1";
-const APK_SHA256 = "6075b8f8eb95e3d63c0dae415807f4a75b6d487fa5dfecd7ff95b911fd9fcb91";
-const APK_SIZE = "17.53 MB";
+const VERSION = "1.1.0";
+const APK_SHA256 = "pending - will be updated after build";
 
 export default function InstallPage() {
   const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);

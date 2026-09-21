@@ -93,14 +93,13 @@ class MainActivity : ComponentActivity() {
                         // No try around composables - each screen handles its own errors
                         // If a screen crashes, it will be caught by the global exception handler and show diagnostics
                         when (currentTab) {
-                            0 -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
+                            0 -> HomeScreenSimple(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
                             1 -> HistoryScreen()
                             2 -> CallRulesScreen(prefs)
                             3 -> SettingsScreen(prefs)
                             4 -> OnboardingScreen(onDone = { currentTab=0 })
                             5 -> PhoneConnectionScreen()
                             6 -> DiagnosticsScreen(prefs)
-                            else -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
                         }
                     }
                 }
