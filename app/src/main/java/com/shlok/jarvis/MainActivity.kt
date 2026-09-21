@@ -30,50 +30,30 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Critical: Make MainActivity robust - it must open even if service, TTS, or other components fail
-        // The UI and background service are separate; one crashing must not take down the other
+        // Ultra-minimal onCreate - must never crash
+        // All heavy init is done async after UI is shown
         try {
             prefs = JarvisPreferences(this)
-        } catch (e: Exception) {
-            android.util.Log.e("JarvisMain", "Failed to init prefs", e)
-            // Create a fallback prefs to allow UI to open
-            prefs = JarvisPreferences(this)
-        }
-        try {
-            TtsManager.init(this)
-        } catch (e: Exception) {
-            android.util.Log.e("JarvisMain", "TTS init failed, continuing without TTS", e)
-        }
-        // Log app start for diagnostics
-        try {
-            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "APP_STARTED", "MainActivity onCreate")
-        } catch (_: Exception) {}
-        // Auto-start foreground service (will show notification) - critical for background call handling
-        // This is independent of browser/Vercel; native services are the source of truth
-        // Do not let service start failure crash the UI
-        try {
-            JarvisForegroundService.start(this)
-            com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_START_REQUESTED", "from MainActivity")
-        } catch (e: Exception) {
-            android.util.Log.e("JarvisMain", "Service start failed", e)
+        } catch (_: Exception) {
+            // If even prefs fails, create a minimal fallback and show safe UI
             try {
-                com.shlok.jarvis.storage.JarvisLogger.logSync(this, "SERVICE_START_FAILED", e.message ?: "unknown")
-            } catch (_: Exception) {}
+                setContent {
+                    Box(Modifier.fillMaxSize().background(Color(0xFF05070A)).padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("JARVIS\n\nPrefs init failed\nService may still be running", color = Color.White)
+                    }
+                }
+                return
+            } catch (_: Exception) {
+                // Last resort - plain TextView
+                val tv = android.widget.TextView(this)
+                tv.text = "JARVIS\nPrefs error"
+                setContentView(tv)
+                return
+            }
         }
-
-        // Request base permissions on first launch - do not let this crash the UI
-        try {
-            requestIfNeeded()
-        } catch (e: Exception) {
-            android.util.Log.e("JarvisMain", "Permission request failed", e)
-        }
-
-        val openHistory = try {
-            intent.getBooleanExtra("open_history", false)
-        } catch (_: Exception) { false }
-        if (openHistory) currentTab = 1
 
         // Make setContent robust - catch any Compose/theme initialization errors
+        // Heavy init (TTS, service, permissions) is done async after UI is shown, so UI never waits
         try {
             setContent {
                 JarvisTheme {
@@ -90,8 +70,6 @@ class MainActivity : ComponentActivity() {
                         }
                 ) { pad ->
                     Box(Modifier.padding(pad)) {
-                        // No try around composables - each screen handles its own errors
-                        // If a screen crashes, it will be caught by the global exception handler and show diagnostics
                         when (currentTab) {
                             0 -> HomeScreenSimple(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
                             1 -> HistoryScreen()
@@ -107,11 +85,9 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             android.util.Log.e("JarvisMain", "setContent failed", e)
-            // Fallback: show a minimal Activity without Compose if even theme fails
             try {
                 com.shlok.jarvis.storage.JarvisLogger.logSync(this, "UI_CRASH", e.message ?: "unknown")
             } catch (_: Exception) {}
-            // Try to show a simple TextView as fallback
             val tv = android.widget.TextView(this)
             tv.text = "JARVIS\n\nUI failed to start:\n${e.message}\n\nService is still running (check notification).\nOpen Diagnostics."
             tv.setTextColor(android.graphics.Color.WHITE)
@@ -119,6 +95,18 @@ class MainActivity : ComponentActivity() {
             tv.setPadding(32, 32, 32, 32)
             setContentView(tv)
         }
+
+        // Async init after UI is shown - never block UI
+        try {
+            // TTS init async
+            Thread {
+                try { com.shlok.jarvis.voice.TtsManager.init(this) } catch (_: Exception) {}
+                try { com.shlok.jarvis.storage.JarvisLogger.logSync(this, "APP_STARTED", "MainActivity onCreate async") } catch (_: Exception) {}
+                try { com.shlok.jarvis.service.JarvisForegroundService.start(this) } catch (_: Exception) {}
+            }.start()
+            // Permissions async
+            try { requestIfNeeded() } catch (_: Exception) {}
+        } catch (_: Exception) {}
     }
 
     private fun requestIfNeeded() {
