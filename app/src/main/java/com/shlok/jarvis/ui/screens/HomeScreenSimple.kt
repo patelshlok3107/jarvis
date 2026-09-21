@@ -32,16 +32,20 @@ fun HomeScreenSimple(
     var status by remember { mutableStateOf(JarvisStatus.AVAILABLE) }
     var historyPreview by remember { mutableStateOf(emptyList<com.shlok.jarvis.data.CallHistoryEntry>()) }
 
-    // Safe collect - never crash if DataStore fails
+    // Safe collect - never crash, independent from service
     LaunchedEffect(Unit) {
         try {
             prefs.statusFlow.collectLatest { status = it }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // If DataStore fails, stay on default AVAILABLE
+        }
     }
     LaunchedEffect(Unit) {
         try {
             com.shlok.jarvis.storage.HistoryRepository.historyFlow(ctx).collectLatest { historyPreview = it.take(3) }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // If history fails, show empty
+        }
     }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF05070A)).padding(16.dp)) {
