@@ -19,9 +19,11 @@ export default function InstallPage() {
       </div>
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:8}}>
-        <a href={APK_URL} style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • com.shlok.jarvis • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
+        <a href={APK_URL} download={`JARVIS-v${VERSION}.apk`} style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
+        <button onClick={()=>{ window.location.href = APK_URL; }} style={{width:"100%",marginTop:10,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer"}}>If download doesn't start, tap here</button>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • 17.5 MB • com.shlok.jarvis • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
         <a href={RELEASE_URL} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",fontSize:11,color:"#00E5FF",marginTop:10,textDecoration:"none"}}>View all releases on GitHub →</a>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6}}>Direct link: {APK_URL}</div>
       </div>
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:12}}>
