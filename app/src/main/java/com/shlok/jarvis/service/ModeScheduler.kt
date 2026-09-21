@@ -12,6 +12,7 @@ import com.shlok.jarvis.storage.JarvisLogger
 import com.shlok.jarvis.storage.JarvisPreferences
 import com.shlok.jarvis.storage.ScheduledModeStore
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 object ModeScheduler {
