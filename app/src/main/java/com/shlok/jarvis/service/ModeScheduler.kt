@@ -59,9 +59,7 @@ object ModeScheduler {
 
     suspend fun restoreAll(ctx: Context) {
         try {
-            val all = ScheduledModeStore.flow(ctx).let { flow ->
-                kotlinx.coroutines.flow.first(flow)
-            }
+            val all = ScheduledModeStore.flow(ctx).first()
             all.forEach { schedule(ctx, it) }
             JarvisLogger.log(ctx, "SCHEDULER_RESTORE", "restored ${all.size} modes")
         } catch (_: Exception) {}

@@ -52,13 +52,7 @@ fun HomeScreenSimple(
         }
 
         Spacer(Modifier.height(8.dp))
-        // Core - safe
-        try {
-            JarvisCore(status, false, modifier = Modifier.align(Alignment.CenterHorizontally))
-        } catch (_: Exception) {
-            Text("JARVIS", color = Color(0xFF00E5FF), modifier = Modifier.align(Alignment.CenterHorizontally))
-            Text(status.displayName, color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally))
-        }
+        JarvisCore(status, false, modifier = Modifier.align(Alignment.CenterHorizontally))
 
         Spacer(Modifier.height(12.dp))
         Text(status.displayName, color = Color(0xFF00E5FF), fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
