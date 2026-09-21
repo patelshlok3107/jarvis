@@ -169,7 +169,7 @@ class VoiceAssistantService : LifecycleService() {
             try {
                 // Check permission first
                 if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this, "ERROR: Mic permission denied")
+                    // Don't call suspend here - just resume
                     if (cont.isActive) cont.resume(null, null)
                     return@suspendCancellableCoroutine
                 }
