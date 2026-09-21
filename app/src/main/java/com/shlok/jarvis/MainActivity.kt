@@ -88,39 +88,22 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(selected = currentTab==3, onClick = { currentTab=3 }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
                             }
                         }
-                    ) { pad ->
-                        Box(Modifier.padding(pad)) {
-                            // Each screen is wrapped to catch its own errors
-                            try {
-                                when (currentTab) {
-                                    0 -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
-                                    1 -> HistoryScreen()
-                                    2 -> CallRulesScreen(prefs)
-                                    3 -> SettingsScreen(prefs)
-                                    4 -> OnboardingScreen(onDone = { currentTab=0 })
-                                    5 -> PhoneConnectionScreen()
-                                    6 -> DiagnosticsScreen(prefs)
-                                    else -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
-                                }
-                            } catch (e: Exception) {
-                                android.util.Log.e("JarvisMain", "Screen $currentTab failed", e)
-                                // Show error screen instead of crashing
-                                Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                                        Text("JARVIS", color = Color(0xFF00E5FF), letterSpacing = 8.sp)
-                                        Spacer(Modifier.height(12.dp))
-                                        Text("Something needs attention", color = Color.White, fontSize = 14.sp)
-                                        Spacer(Modifier.height(8.dp))
-                                        Text("Screen $currentTab failed: ${e.message}", color = Color(0xFFFFC107), fontSize = 11.sp)
-                                        Spacer(Modifier.height(12.dp))
-                                        Button(onClick = { currentTab = 0 }) { Text("Go Home") }
-                                        Spacer(Modifier.height(8.dp))
-                                        OutlinedButton(onClick = { currentTab = 6 }) { Text("Diagnostics") }
-                                    }
-                                }
-                            }
+                ) { pad ->
+                    Box(Modifier.padding(pad)) {
+                        // No try around composables - each screen handles its own errors
+                        // If a screen crashes, it will be caught by the global exception handler and show diagnostics
+                        when (currentTab) {
+                            0 -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
+                            1 -> HistoryScreen()
+                            2 -> CallRulesScreen(prefs)
+                            3 -> SettingsScreen(prefs)
+                            4 -> OnboardingScreen(onDone = { currentTab=0 })
+                            5 -> PhoneConnectionScreen()
+                            6 -> DiagnosticsScreen(prefs)
+                            else -> HomeScreen(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
                         }
                     }
+                }
                 }
             }
         } catch (e: Exception) {
