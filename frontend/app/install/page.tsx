@@ -1,8 +1,11 @@
 "use client";
 
-const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.0.1.apk";
+const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || "https://github.com/patelshlok3107/jarvis/releases/download/v1.0.1/JARVIS-v1.0.1.apk";
+const APK_FALLBACK = "https://github.com/patelshlok3107/jarvis/releases/latest/download/JARVIS-v1.0.1.apk";
 const RELEASE_URL = "https://github.com/patelshlok3107/jarvis/releases";
 const VERSION = "1.0.1";
+const APK_SHA256 = "6075b8f8eb95e3d63c0dae415807f4a75b6d487fa5dfecd7ff95b911fd9fcb91";
+const APK_SIZE = "17.53 MB";
 
 export default function InstallPage() {
   const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
@@ -20,9 +23,12 @@ export default function InstallPage() {
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:8}}>
         <a href={APK_URL} download={`JARVIS-v${VERSION}.apk`} target="_blank" rel="noopener" style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
-        <button onClick={()=>{ window.open(APK_URL, '_blank'); }} style={{width:"100%",marginTop:10,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer"}}>If download doesn't start, tap here (opens GitHub)</button>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • com.shlok.jarvis • 17.5 MB • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>Direct: {APK_URL}</div>
+        <div style={{display:"flex",gap:8,marginTop:10}}>
+          <button onClick={()=>{ window.location.href = APK_URL; }} style={{flex:1,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer",fontSize:11}}>Retry download</button>
+          <a href={APK_FALLBACK} target="_blank" rel="noopener" style={{flex:1,padding:12,background:"transparent",border:"1px solid #1E2A3A",color:"rgba(255,255,255,.6)",borderRadius:999,fontWeight:700,textAlign:"center",textDecoration:"none",fontSize:11}}>GitHub direct</a>
+        </div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • {APK_SIZE} • SHA-256: {APK_SHA256.slice(0,16)}… • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>If download stops at 17.52 MB, it's complete (17.53 MB rounded). Check Files → Downloads → tap APK.</div>
         <a href={RELEASE_URL} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",fontSize:11,color:"#00E5FF",marginTop:10,textDecoration:"none"}}>View all releases on GitHub →</a>
       </div>
 
