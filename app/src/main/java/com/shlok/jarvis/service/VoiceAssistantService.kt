@@ -150,11 +150,29 @@ class VoiceAssistantService : LifecycleService() {
             val nm = getSystemService(NotificationManager::class.java)
             nm.notify(NOTIF_ID, buildNotification(isListening, isWakeWordMode))
         } catch (_: Exception) {}
+        // Update diagnostics state
+        lifecycleScope.launch {
+            try {
+                val state = when {
+                    isListening && isWakeWordMode -> "WAKE_DETECTING"
+                    isListening -> "COMMAND_LISTENING"
+                    isWakeWordMode -> "MICROPHONE_READY"
+                    else -> "STOPPED"
+                }
+                com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, state)
+            } catch (_: Exception) {}
+        }
     }
 
     private suspend fun listenOnce(): String? {
         return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
             try {
+                // Check permission first
+                if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this, "ERROR: Mic permission denied")
+                    if (cont.isActive) cont.resume(null, null)
+                    return@suspendCancellableCoroutine
+                }
                 val r = SpeechRecognizer.createSpeechRecognizer(this)
                 recognizer = r
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -162,24 +180,67 @@ class VoiceAssistantService : LifecycleService() {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 800L)
                 }
                 r.setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: android.os.Bundle?) {}
-                    override fun onBeginningOfSpeech() {}
-                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onReadyForSpeech(params: android.os.Bundle?) {
+                        lifecycleScope.launch { com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "MICROPHONE_READY") }
+                    }
+                    override fun onBeginningOfSpeech() {
+                        lifecycleScope.launch {
+                            com.shlok.jarvis.storage.VoiceDiagnostics.setLastAudio(this@VoiceAssistantService, System.currentTimeMillis())
+                            com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "AUDIO_STREAM_STARTED")
+                        }
+                    }
+                    override fun onRmsChanged(rmsdB: Float) {
+                        // Update mic level for diagnostics (0-10)
+                        val level = (rmsdB + 2f).coerceIn(0f, 10f).toInt().toString()
+                        lifecycleScope.launch { com.shlok.jarvis.storage.VoiceDiagnostics.setMicLevel(this@VoiceAssistantService, level) }
+                    }
                     override fun onBufferReceived(buffer: ByteArray?) {}
                     override fun onEndOfSpeech() {}
-                    override fun onError(error: Int) { if (cont.isActive) cont.resume(null, null) }
+                    override fun onError(error: Int) {
+                        lifecycleScope.launch {
+                            val msg = when (error) {
+                                SpeechRecognizer.ERROR_AUDIO -> "Audio error"
+                                SpeechRecognizer.ERROR_CLIENT -> "Client error"
+                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission error - mic denied"
+                                SpeechRecognizer.ERROR_NETWORK -> "Network error"
+                                SpeechRecognizer.ERROR_NO_MATCH -> "No match"
+                                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Busy"
+                                SpeechRecognizer.ERROR_SERVER -> "Server error"
+                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Timeout"
+                                else -> "Error $error"
+                            }
+                            com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: $msg")
+                            JarvisLogger.log(this@VoiceAssistantService, "WAKE_ENGINE_ERROR", msg)
+                        }
+                        if (cont.isActive) cont.resume(null, null)
+                    }
                     override fun onResults(results: android.os.Bundle?) {
                         val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        if (cont.isActive) cont.resume(list?.firstOrNull(), null)
+                        val text = list?.firstOrNull()
+                        lifecycleScope.launch {
+                            if (text != null) com.shlok.jarvis.storage.VoiceDiagnostics.setLastAudio(this@VoiceAssistantService, System.currentTimeMillis())
+                        }
+                        if (cont.isActive) cont.resume(text, null)
                     }
                     override fun onPartialResults(partialResults: android.os.Bundle?) {}
                     override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
                 })
                 r.startListening(intent)
-                cont.invokeOnCancellation { r.destroy() }
+                // Log that we actually started listening (proves mic is receiving)
+                lifecycleScope.launch {
+                    JarvisLogger.log(this@VoiceAssistantService, "AUDIO_STREAM_STARTED", "SpeechRecognizer started")
+                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "WAKE_DETECTING")
+                }
+                cont.invokeOnCancellation { try { r.destroy() } catch (_: Exception) {} }
             } catch (e: Exception) {
+                lifecycleScope.launch {
+                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: ${e.message}")
+                    JarvisLogger.log(this@VoiceAssistantService, "MICROPHONE_ERROR", e.message ?: "unknown")
+                }
                 if (cont.isActive) cont.resume(null, null)
             }
         }
