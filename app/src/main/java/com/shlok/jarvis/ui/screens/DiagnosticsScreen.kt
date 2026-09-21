@@ -118,7 +118,8 @@ private fun isServiceRunning(ctx: Context): Boolean {
 private fun isBatteryOptimized(ctx: Context): Boolean {
     return try {
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
-        !pm.isIgnoringBatteryOptimizations(ctx.packageName)
+        val ignoring = pm.isIgnoringBatteryOptimizations(ctx.packageName)
+        !ignoring
     } catch (_: Exception) { false }
 }
 
