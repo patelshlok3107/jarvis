@@ -35,21 +35,16 @@ class MainActivity : ComponentActivity() {
         try {
             prefs = JarvisPreferences(this)
         } catch (_: Exception) {
-            // If even prefs fails, create a minimal fallback and show safe UI
+            // Last resort - plain TextView
             try {
-                setContent {
-                    Box(Modifier.fillMaxSize().background(Color(0xFF05070A)).padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("JARVIS\n\nPrefs init failed\nService may still be running", color = Color.White)
-                    }
-                }
-                return
-            } catch (_: Exception) {
-                // Last resort - plain TextView
                 val tv = android.widget.TextView(this)
-                tv.text = "JARVIS\nPrefs error"
+                tv.text = "JARVIS\nPrefs init failed\nService may still be running"
+                tv.setTextColor(android.graphics.Color.WHITE)
+                tv.setBackgroundColor(android.graphics.Color.parseColor("#05070A"))
+                tv.setPadding(32, 32, 32, 32)
                 setContentView(tv)
-                return
-            }
+            } catch (_: Exception) {}
+            return
         }
 
         // Make setContent robust - catch any Compose/theme initialization errors
