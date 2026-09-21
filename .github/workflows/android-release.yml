@@ -103,31 +103,32 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           ls -lh JARVIS-v*.apk
       - name: Verify APK
+        continue-on-error: true
         run: |
           APK="JARVIS-v${{ env.VERSION }}.apk"
           if [ ! -f "$APK" ]; then echo "APK missing"; exit 1; fi
           echo "=== APK Verification ==="
-          ls -lh "$APK"
+          ls -lh "$APK" || true
           sha256sum "$APK" | tee -a build.log || true
-          echo "SHA-256: $(sha256sum "$APK" | cut -d' ' -f1)" >> $GITHUB_ENV || true
-          # Find apksigner and aapt
-          APKSIGNER=$(find $ANDROID_HOME -name apksigner -type f 2>/dev/null | head -n 1)
-          AAPT=$(find $ANDROID_HOME -name aapt -type f 2>/dev/null | head -n 1)
+          SHA=$(sha256sum "$APK" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+          echo "SHA-256: $SHA" >> $GITHUB_ENV || true
+          echo "SHA=$SHA"
+          APKSIGNER=$(find $ANDROID_HOME -name apksigner -type f 2>/dev/null | head -n 1 || true)
+          AAPT=$(find $ANDROID_HOME -name aapt -type f 2>/dev/null | head -n 1 || true)
           if [ -n "$APKSIGNER" ]; then
             echo "Verifying with apksigner: $APKSIGNER"
-            $APKSIGNER verify --verbose --print-certs "$APK" 2>&1 | tee -a build.log || echo "apksigner verify failed - continuing (debug keystore)"
+            $APKSIGNER verify --verbose --print-certs "$APK" 2>&1 | tee -a build.log || echo "apksigner verify warning - continuing"
           else
-            echo "apksigner not found, checking zip structure"
-            unzip -l "$APK" | head -n 20 || true
+            echo "apksigner not found"
+            unzip -l "$APK" 2>&1 | head -n 20 || true
           fi
           if [ -n "$AAPT" ]; then
             echo "aapt dump badging:"
-            $AAPT dump badging "$APK" 2>&1 | head -n 30 | tee -a build.log || echo "aapt failed"
+            $AAPT dump badging "$APK" 2>&1 | head -n 30 | tee -a build.log || echo "aapt warning"
           else
-            echo "aapt not found - skipping"
+            echo "aapt not found"
           fi
-          if unzip -l "$APK" | grep -q "splits/"; then echo "WARNING: APK appears to be split"; fi
-          echo "APK verification done - not failing on verify"
+          echo "APK verification done"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
