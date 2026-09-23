@@ -7,6 +7,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,10 +19,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.shlok.jarvis.storage.JarvisPreferences
 import com.shlok.jarvis.ui.screens.*
 import com.shlok.jarvis.ui.theme.JarvisTheme
+import com.shlok.jarvis.ui.theme.ObsidianColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -36,6 +40,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Edge-to-edge — respect status/navigation bars, display cutouts
+        try {
+            enableEdgeToEdge()
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+        } catch (_: Exception) {}
 
         // --- CRASH-SAFE PREFS INIT ---
         try {
@@ -81,16 +90,15 @@ class MainActivity : ComponentActivity() {
             setContent {
                 JarvisTheme {
                     if (showSetup == null) {
-                        // Loading splash — minimal, never crashes
-                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        // Loading splash — Obsidian void, never crashes
+                        Box(Modifier.fillMaxSize().background(ObsidianColors.Background), contentAlignment = androidx.compose.ui.Alignment.Center) {
                             Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                                Text("JARVIS", color = Color(0xFF00E5FF), letterSpacing = 8.sp, fontSize = 20.sp)
+                                Text("J.A.R.V.I.S", color = ObsidianColors.PrimaryContainer, letterSpacing = 6.sp, fontSize = 18.sp, style = com.shlok.jarvis.ui.theme.ObsidianTypography.LabelMd)
                                 Spacer(Modifier.height(8.dp))
-                                CircularProgressIndicator(color = Color(0xFF00E5FF), modifier = Modifier.size(24.dp))
+                                CircularProgressIndicator(color = ObsidianColors.PrimaryContainer, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                             }
                         }
                     } else if (showSetup == true) {
-                        // Setup wizard — independent, failures here don't affect main
                         SetupWizardScreen(
                             prefs = if (::prefs.isInitialized) prefs else null,
                             onComplete = {
@@ -99,46 +107,85 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        // Main scaffold with bottom navigation — each tab isolated
                         Scaffold(
-                            containerColor = Color(0xFF05070A),
+                            containerColor = ObsidianColors.Background,
+                            contentWindowInsets = WindowInsets.safeDrawing,
                             bottomBar = {
-                                NavigationBar(containerColor = Color(0xFF0E1218)) {
+                                // STITCH bottom nav — obsidian surface 85% + hairline, 64dp height
+                                NavigationBar(
+                                    containerColor = ObsidianColors.Surface.copy(alpha = 0.85f),
+                                    tonalElevation = 0.dp,
+                                    windowInsets = WindowInsets.navigationBars
+                                ) {
                                     NavigationBarItem(
                                         selected = currentTab == 0,
                                         onClick = { currentTab = 0 },
-                                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                                        label = { Text("HOME", fontSize = 10.sp) }
+                                        icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
+                                        label = { Text("HOME", fontSize = 10.sp, letterSpacing = 1.sp) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = ObsidianColors.PrimaryContainer,
+                                            selectedTextColor = ObsidianColors.PrimaryContainer,
+                                            indicatorColor = Color.Transparent,
+                                            unselectedIconColor = ObsidianColors.OnSurfaceVariant,
+                                            unselectedTextColor = ObsidianColors.OnSurfaceVariant
+                                        )
                                     )
                                     NavigationBarItem(
                                         selected = currentTab == 1,
                                         onClick = { currentTab = 1 },
-                                        icon = { Icon(Icons.Default.Mic, contentDescription = null) },
-                                        label = { Text("ASSISTANT", fontSize = 10.sp) }
+                                        icon = { Icon(Icons.Default.GraphicEq, contentDescription = null) },
+                                        label = { Text("AI CORE", fontSize = 10.sp, letterSpacing = 1.sp) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = ObsidianColors.PrimaryContainer,
+                                            selectedTextColor = ObsidianColors.PrimaryContainer,
+                                            indicatorColor = Color.Transparent,
+                                            unselectedIconColor = ObsidianColors.OnSurfaceVariant,
+                                            unselectedTextColor = ObsidianColors.OnSurfaceVariant
+                                        )
                                     )
                                     NavigationBarItem(
                                         selected = currentTab == 2,
                                         onClick = { currentTab = 2 },
-                                        icon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                                        label = { Text("CALLS", fontSize = 10.sp) }
+                                        icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                                        label = { Text("SECURE", fontSize = 10.sp, letterSpacing = 1.sp) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = ObsidianColors.PrimaryContainer,
+                                            selectedTextColor = ObsidianColors.PrimaryContainer,
+                                            indicatorColor = Color.Transparent,
+                                            unselectedIconColor = ObsidianColors.OnSurfaceVariant,
+                                            unselectedTextColor = ObsidianColors.OnSurfaceVariant
+                                        )
                                     )
                                     NavigationBarItem(
                                         selected = currentTab == 3,
                                         onClick = { currentTab = 3 },
                                         icon = { Icon(Icons.Default.History, contentDescription = null) },
-                                        label = { Text("HISTORY", fontSize = 10.sp) }
+                                        label = { Text("LOGS", fontSize = 10.sp, letterSpacing = 1.sp) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = ObsidianColors.PrimaryContainer,
+                                            selectedTextColor = ObsidianColors.PrimaryContainer,
+                                            indicatorColor = Color.Transparent,
+                                            unselectedIconColor = ObsidianColors.OnSurfaceVariant,
+                                            unselectedTextColor = ObsidianColors.OnSurfaceVariant
+                                        )
                                     )
                                     NavigationBarItem(
                                         selected = currentTab == 4,
                                         onClick = { currentTab = 4 },
                                         icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                                        label = { Text("SETTINGS", fontSize = 10.sp) }
+                                        label = { Text("SYSTEM", fontSize = 10.sp, letterSpacing = 1.sp) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = ObsidianColors.PrimaryContainer,
+                                            selectedTextColor = ObsidianColors.PrimaryContainer,
+                                            indicatorColor = Color.Transparent,
+                                            unselectedIconColor = ObsidianColors.OnSurfaceVariant,
+                                            unselectedTextColor = ObsidianColors.OnSurfaceVariant
+                                        )
                                     )
                                 }
                             }
                         ) { pad ->
                             Box(Modifier.padding(pad)) {
-                                // Each screen wrapped in error boundary: if one crashes, show fallback, not whole app
                                 when (currentTab) {
                                     0 -> SafeScreen { HomeScreenPremium(prefs, onOpenSettings = { currentTab = 4 }, onOpenAssistant = { currentTab = 1 }) }
                                     1 -> SafeScreen { AssistantScreen(prefs) }
