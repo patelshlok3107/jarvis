@@ -1,2 +1,2 @@
-:root{--bg:#05070A;--card:#0E1218;--cyan:#00E5FF;--green:#00E676;--yellow:#FFC107;--border:#1E2A3A}
-*{box-sizing:border-box}html,body{margin:0;background:#05070A;color:#E8F1FF;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+:root{--bg:#121315;--card:#1A1C1D;--card2:#1E2021;--cyan:#38E1FF;--cyan2:#27D9F7;--green:#00E676;--yellow:#FFC107;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.06);--text:#E3E2E4;--muted:#BBC9CD;--outline:#859397}
+*{box-sizing:border-box}html,body{margin:0;background:#121315;color:#E3E2E4;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif}
