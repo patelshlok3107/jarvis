@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.shlok.jarvis"
     compileSdk = 34
+    // Fixed gradlew classpath issue for CI (no manifest required)
 
     defaultConfig {
         applicationId = "com.shlok.jarvis"
