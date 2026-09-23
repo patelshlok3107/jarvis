@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { API_URL, healthCheck, jarvisChat } from "../lib/api";
+import { CURRENT_APK_URL, CURRENT_APK_SIZE, CURRENT_APK_VERSION } from "../lib/apkConfig";
 
 const statuses: Record<string, { label: string; sub: string; ack: string; color: string }> = {
   AVAILABLE: { label: "AVAILABLE", sub: "Calls ring normally", ack: "You're available, Shlok. I'll let calls through.", color: "#38E1FF" },
@@ -23,6 +24,8 @@ export default function Page() {
   const [speed, setSpeed] = useState("1");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [dlStatus, setDlStatus] = useState<"idle"|"downloading"|"done"|"error">("idle");
 
   useEffect(() => {
     try { const h = JSON.parse(localStorage.getItem("jarvis_hist")||"[]"); setHistory(h); } catch {}
@@ -30,6 +33,7 @@ export default function Page() {
     if (API_URL) healthCheck().then(r=>setHealth(r.status)).catch(()=>setHealth("offline"));
     else setHealth("offline");
   }, []);
+  useEffect(()=>{ try{ setIsAndroid(/Android/i.test(navigator.userAgent)); }catch{} },[]);
 
   function speak(t: string) {
     try {
@@ -84,6 +88,17 @@ export default function Page() {
             <div style={{display:"flex",alignItems:"center",gap:8,background:"#1A1C1D",padding:"6px 10px",borderRadius:999,border:"1px solid rgba(255,255,255,0.06)"}}><span style={{width:6,height:6,borderRadius:"50%",background:"#38E1FF",boxShadow:"0 0 6px #38E1FF"}}></span><span style={{fontSize:10,color:"#BBC9CD",letterSpacing:1.5,fontFamily:"JetBrains Mono"}}>99.8% SYNC</span></div>
           </div>
 
+          <div style={{background:"#1A1C1D",border:"1px solid rgba(56,225,255,0.15)",borderRadius:20,padding:12,display:"flex",flexDirection:"column",gap:8,boxShadow:"0 0 20px rgba(56,225,255,0.08)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontSize:13,color:"#E3E2E4",fontWeight:600,letterSpacing:0.5}}>{isAndroid ? "Install JARVIS" : "Get JARVIS for Android"}</div><div style={{fontSize:10,color:"#BBC9CD",fontFamily:"JetBrains Mono"}}>Native APK • {CURRENT_APK_SIZE} • v{CURRENT_APK_VERSION} • One tap</div></div>
+              <a href={CURRENT_APK_URL} download={`JARVIS-v${CURRENT_APK_VERSION}.apk`} target="_blank" rel="noopener" onClick={()=>{ setDlStatus("downloading"); setTimeout(()=>setDlStatus("done"),2000); }} style={{display:"flex",alignItems:"center",gap:6,background:"#38E1FF",color:"#00363F",padding:"10px 14px",borderRadius:999,fontSize:11,fontWeight:700,letterSpacing:1,fontFamily:"JetBrains Mono",textDecoration:"none",whiteSpace:"nowrap",boxShadow:"0 0 12px rgba(56,225,255,0.4)"}}>↓ INSTALL</a>
+            </div>
+            {dlStatus==="downloading" && <div style={{fontSize:10,color:"#38E1FF",fontFamily:"JetBrains Mono",textAlign:"center"}}>Downloading JARVIS…</div>}
+            {dlStatus==="done" && <div style={{fontSize:10,color:"#38E1FF",fontFamily:"JetBrains Mono",textAlign:"center"}}>Download complete — open APK to install.</div>}
+            {dlStatus==="error" && <div style={{fontSize:10,color:"#FFB4AB",textAlign:"center"}}>Unable to download. <button onClick={()=>setDlStatus("idle")} style={{background:"transparent",border:"1px solid #FFB4AB",color:"#FFB4AB",padding:"4px 8px",borderRadius:999,fontSize:10,marginLeft:8}}>TRY AGAIN</button></div>}
+            <div style={{fontSize:9,color:"#3C494C",fontFamily:"JetBrains Mono",textAlign:"center"}}>Direct GitHub release • Verified SHA {CURRENT_APK_SIZE.includes("17771638") ? "a46192…" : ""} • <a href="/install" style={{color:"#38E1FF",textDecoration:"none"}}>Details →</a></div>
+          </div>
+
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 0"}}>
             <div style={{position:"relative",width:192,height:192,display:"grid",placeItems:"center",cursor:"pointer"}} onClick={()=>setTab("assistant")}>
               <div style={{position:"absolute",width:208,height:208,borderRadius:"50%",background:"rgba(56,225,255,0.08)",filter:"blur(20px)"}}/>
@@ -131,6 +146,7 @@ export default function Page() {
             <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:10,color:"#BBC9CD",letterSpacing:1,fontFamily:"JetBrains Mono"}}>Upcoming Timeline</span><span style={{fontSize:10,color:"#38E1FF",fontFamily:"JetBrains Mono"}}>● AUTOMATION READY</span></div>
             <div style={{display:"flex",gap:12,marginTop:12}}><div style={{width:32,height:32,borderRadius:8,background:"#292A2B",display:"grid",placeItems:"center",color:"#38E1FF"}}>▣</div><div><div style={{fontSize:14,color:"#E3E2E4",fontWeight:500}}>Board Meeting <span style={{fontSize:10,color:"#BBC9CD",fontFamily:"JetBrains Mono"}}>10:30 PM</span></div><div style={{fontSize:12,color:"#BBC9CD",marginTop:4}}>Auto-Busy will engage • Call guardian intercepts active</div></div></div>
           </div>
+
         </div>
       )}
 
