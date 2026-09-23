@@ -171,29 +171,24 @@ fun AssistantScreen(prefs: JarvisPreferences) {
                                 // Prefer service one-shot for consistent TTS handling
                                 val ok = VoiceAssistantService.tryStart(ctx, wakeWord = false)
                                 if (!ok) {
-                                    // Fallback to direct STT
-                                    val stt = com.shlok.jarvis.voice.SttManager(ctx)
-                                    if (!stt.isAvailable()) {
+                                    // Fallback to direct SpeechRecognizer via WakeWordEngine (unified STT)
+                                    val engine = SpeechRecognizerWakeWordEngine()
+                                    if (!engine.isAvailable(ctx)) {
                                         errorBanner = "Speech recognition not available."
                                         listening = false
                                         return@launch
                                     }
-                                    var got = false
-                                    stt.listenFlow().collect { utterance ->
-                                        if (got) return@collect
-                                        got = true
+                                    val utterance = engine.listenForCommand(ctx)
+                                    if (utterance != null) {
                                         val modeManager = ModeManager(prefs)
                                         val res = modeManager.setModeByUtterance(ctx, utterance)
                                         val reply = res.getOrNull()?.ack ?: "Sorry, didn't catch that. Try \"I'm busy\"."
                                         lastReply = "\"$utterance\" → $reply"
                                         TtsManager.speak(reply)
-                                        listening = false
-                                    }
-                                    kotlinx.coroutines.delay(7500)
-                                    if (!got) {
-                                        listening = false
+                                    } else {
                                         lastReply = "Didn't catch that — try again."
                                     }
+                                    listening = false
                                 } else {
                                     // Service will handle, we just show feedback
                                     lastReply = "Listening... (service)"

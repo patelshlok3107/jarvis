@@ -82,7 +82,7 @@ class JarvisConnectionService : ConnectionService() {
                     isSimulated = false
                 )
                 HistoryRepository.add(applicationContext, entry)
-                NotificationHelper.notifyHandledCall(applicationContext, entry)
+                JarvisNotificationManager.notifyHandledCall(applicationContext, entry)
                 conn.setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
                 conn.destroy()
             } catch (e: Exception) {

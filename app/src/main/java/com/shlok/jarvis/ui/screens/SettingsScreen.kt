@@ -38,6 +38,7 @@ fun SettingsScreen(
     var busyTpl by remember { mutableStateOf("") }
     var recording by remember { mutableStateOf(false) }
     var showDiagnostics by remember { mutableStateOf(false) }
+    var showCallRules by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
@@ -57,11 +58,15 @@ fun SettingsScreen(
         DiagnosticsScreen(prefs, onBack = { showDiagnostics = false })
         return
     }
+    if (showCallRules) {
+        CallRulesScreen(prefs, onBack = { showCallRules = false })
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF05070A)).verticalScroll(rememberScrollState()).padding(16.dp)) {
         Text("SETTINGS", color = Color(0xFF00E5FF), letterSpacing = 3.sp, fontSize = 12.sp)
         Spacer(Modifier.height(4.dp))
-        Text("JARVIS • v2.0.0 (8)", color = Color.White.copy(0.4f), fontSize = 11.sp)
+        Text("JARVIS • v2.0.1 (9)", color = Color.White.copy(0.4f), fontSize = 11.sp)
         Spacer(Modifier.height(16.dp))
 
         // Setup wizard shortcut
@@ -87,6 +92,8 @@ fun SettingsScreen(
             OutlinedTextField(value = busyTpl, onValueChange = { busyTpl=it }, label = { Text("Busy response") }, placeholder = { Text("Hello. I am JARVIS…") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Button(onClick = { scope.launch { try { prefs.setString(PrefKeys.TPL_BUSY, busyTpl) } catch (_: Exception) {} } }, modifier = Modifier.fillMaxWidth()) { Text("Save Busy Response") }
             Text("Also configurable via code: Meeting / Sleeping / Driving / DND use dynamic ResponseGenerator. Custom: \"Hey JARVIS, tell callers I'm studying.\"", color = Color.White.copy(0.4f), fontSize = 11.sp)
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { showCallRules = true }, modifier = Modifier.fillMaxWidth()) { Text("Manage Call Rules (Mom, Rahul, Unknown)") }
         }
 
         Section("Voice") {
@@ -134,7 +141,7 @@ fun SettingsScreen(
         }
 
         Section("About JARVIS") {
-            Text("Version 2.0.0 (8) — rebuilt from ground up for Android 14+ security compliance.", color = Color.White.copy(0.6f), fontSize = 11.sp)
+            Text("Version 2.0.1 (9) — rebuilt from ground up for Android 14+ security compliance.", color = Color.White.copy(0.6f), fontSize = 11.sp)
             Text("Target SDK 34 • Min SDK 26 • Compose • DataStore • WorkManager • Telecom APIs", color = Color.White.copy(0.4f), fontSize = 11.sp)
             Spacer(Modifier.height(8.dp))
             Text("Cloud backend: Vercel + Render (optional, for AI features only). Core functions run natively offline.", color = Color.White.copy(0.35f), fontSize = 10.sp)

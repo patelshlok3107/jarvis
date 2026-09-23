@@ -2,6 +2,8 @@ package com.shlok.jarvis.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -16,7 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
-fun CallRulesScreen(prefs: JarvisPreferences) {
+fun CallRulesScreen(prefs: JarvisPreferences, onBack: (() -> Unit)? = null) {
     val scope = rememberCoroutineScope()
     var unknown by remember { mutableStateOf(UnknownCallerAction.JARVIS_HANDLES) }
 
@@ -26,7 +28,14 @@ fun CallRulesScreen(prefs: JarvisPreferences) {
     }
 
     Column(Modifier.fillMaxSize().background(Color(0xFF05070A)).padding(16.dp)) {
-        Text("CALL RULES", color = Color(0xFF00E5FF), letterSpacing = 3.sp, fontSize = 12.sp)
+        if (onBack != null) {
+            Row {
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = Color.White) }
+                Text("CALL RULES", color = Color(0xFF00E5FF), letterSpacing = 3.sp, fontSize = 12.sp, modifier = Modifier.padding(top=12.dp))
+            }
+        } else {
+            Text("CALL RULES", color = Color(0xFF00E5FF), letterSpacing = 3.sp, fontSize = 12.sp)
+        }
         Spacer(Modifier.height(12.dp))
         RuleCard("Mom", "Always Allow — demo", ContactRuleAction.ALWAYS_ALLOW, {})
         RuleCard("Rahul", "Always Allow — demo", ContactRuleAction.ALWAYS_ALLOW, {})

@@ -128,7 +128,7 @@ class JarvisCallScreeningService : CallScreeningService() {
                 )
                 HistoryRepository.add(applicationContext, entry)
                 if (decision.shouldHandle) {
-                    NotificationHelper.notifyHandledCall(applicationContext, entry)
+                    JarvisNotificationManager.notifyHandledCall(applicationContext, entry)
                     JarvisLogger.log(applicationContext, "CALL_SCREENED", "number=$number status=$status disp=${decision.disposition} simulated=$isSimulatedForHistory")
                 } else {
                     JarvisLogger.log(applicationContext, "CALL_ALLOWED", "number=$number status=$status")
