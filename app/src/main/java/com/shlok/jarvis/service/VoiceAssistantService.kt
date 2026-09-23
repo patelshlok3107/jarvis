@@ -1,145 +1,196 @@
 package com.shlok.jarvis.service
 
-import android.app.Notification
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
-import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import com.shlok.jarvis.MainActivity
-import com.shlok.jarvis.engine.SmartMode
-import com.shlok.jarvis.engine.SmartModeEngine
-import com.shlok.jarvis.engine.SmartModeMapper
-import com.shlok.jarvis.engine.TimeParser
+import com.shlok.jarvis.manager.ModeManager
 import com.shlok.jarvis.storage.JarvisLogger
 import com.shlok.jarvis.storage.JarvisPreferences
+import com.shlok.jarvis.storage.VoiceDiagnostics
+import com.shlok.jarvis.voice.SpeechRecognizerWakeWordEngine
 import com.shlok.jarvis.voice.TtsManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Voice Assistant Service - independent from UI Activity
- * Handles wake word "Hey JARVIS" and natural language commands
- * Battery-efficient: uses tap-to-talk by default, continuous wake word only if user enables and device supports it
- * Clearly indicates mic active via notification
+ * JARVIS Voice Assistant Service — clean FGS lifecycle per Android 14 rules.
+ *
+ * Architecture:
+ *  User opens JARVIS -> enables voice -> permission granted -> startForegroundService from eligible foreground state
+ *  -> creates notification -> initializes mic -> wake-word engine
+ *
+ *  If Android rejects (SecurityException), we do NOT crash, not suppress, not retry loop.
+ *  Instead show: "VOICE ASSISTANT — Android has restricted microphone background access. [ VIEW SETUP ]"
+ *
+ *  Independent from UI — failure here does NOT crash MainActivity.
  */
 class VoiceAssistantService : LifecycleService() {
 
-    private var recognizer: SpeechRecognizer? = null
+    private val wakeEngine = SpeechRecognizerWakeWordEngine()
     private var isListening = false
     private var isWakeWordMode = false
 
     companion object {
         const val NOTIF_ID = 1002
-        fun start(ctx: Context, wakeWord: Boolean = false) {
-            val i = Intent(ctx, VoiceAssistantService::class.java).apply { putExtra("wakeWord", wakeWord) }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i) else ctx.startService(i)
+
+        /**
+         * Starts voice service ONLY if mic permission granted and caller is in eligible foreground state.
+         * Returns false if permission missing — caller should show setup.
+         */
+        fun tryStart(ctx: Context, wakeWord: Boolean = false): Boolean {
+            if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                return false
+            }
+            return try {
+                val i = Intent(ctx, VoiceAssistantService::class.java).apply { putExtra("wakeWord", wakeWord) }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ctx.startForegroundService(i) else ctx.startService(i)
+                true
+            } catch (e: SecurityException) {
+                android.util.Log.e("VoiceService", "FGS SecurityException", e)
+                false
+            } catch (_: Exception) { false }
         }
-        fun stop(ctx: Context) { ctx.stopService(Intent(ctx, VoiceAssistantService::class.java)) }
+
+        // Legacy start wrapper — still checks permission
+        fun start(ctx: Context, wakeWord: Boolean = false) { tryStart(ctx, wakeWord) }
+
+        fun stop(ctx: Context) { try { ctx.stopService(Intent(ctx, VoiceAssistantService::class.java)) } catch (_: Exception) {} }
     }
 
     override fun onCreate() {
         super.onCreate()
-        TtsManager.init(this)
+        try { TtsManager.init(this) } catch (_: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         isWakeWordMode = intent?.getBooleanExtra("wakeWord", false) ?: false
 
-        startForeground(NOTIF_ID, buildNotification(isListening, isWakeWordMode))
-
-        if (isWakeWordMode) {
-            // Continuous wake word is battery-intensive and restricted on some OEMs
-            // We start listening with a timeout and restart
-            startWakeWordListening()
-        } else {
-            // One-shot listening (tap-to-talk)
-            startOneShotListening()
+        // Critical: Check permission BEFORE starting foreground — Android 14 throws SecurityException if mic FGS without permission
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            // Do NOT start foreground with microphone type — show offline notification instead
+            try {
+                startForeground(NOTIF_ID, JarvisNotificationManager.buildOfflineNotification(this))
+                lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "STOPPED: Permission denied") } catch (_: Exception) {} }
+                JarvisLogger.logSync(this, "VOICE_BLOCKED", "RECORD_AUDIO denied")
+            } catch (_: Exception) {}
+            // Stop gracefully — don't crash
+            lifecycleScope.launch { delay(1500); stopSelf() }
+            return START_NOT_STICKY
         }
+
+        // Check SpeechRecognizer availability
+        if (!wakeEngine.isAvailable(this)) {
+            try {
+                startForeground(NOTIF_ID, JarvisNotificationManager.buildOfflineNotification(this))
+                lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: SpeechRecognizer unavailable") } catch (_: Exception) {} }
+            } catch (_: Exception) {}
+            lifecycleScope.launch { delay(1500); stopSelf() }
+            return START_NOT_STICKY
+        }
+
+        // Proper FGS start — must be called within ~5 sec of startForegroundService, with microphone type
+        try {
+            startForeground(NOTIF_ID, JarvisNotificationManager.buildVoiceNotification(this, false, isWakeWordMode))
+            lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "MICROPHONE_READY") } catch (_: Exception) {} }
+            JarvisLogger.logSync(this, "VOICE_STARTED", "wakeWord=$isWakeWordMode")
+        } catch (e: SecurityException) {
+            android.util.Log.e("VoiceService", "startForeground SecurityException", e)
+            try {
+                // Fallback: show offline state without crashing
+                lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: ${e.message}") } catch (_: Exception) {} }
+                JarvisLogger.logSync(this, "VOICE_FGS_BLOCKED", e.message ?: "SecurityException")
+                // Post notification via NM directly (workaround if FGS failed)
+                val nm = getSystemService(NotificationManager::class.java)
+                nm.notify(NOTIF_ID, JarvisNotificationManager.buildOfflineNotification(this))
+            } catch (_: Exception) {}
+            lifecycleScope.launch { delay(1500); stopSelf() }
+            return START_NOT_STICKY
+        } catch (e: Exception) {
+            android.util.Log.e("VoiceService", "FGS error", e)
+            lifecycleScope.launch { delay(1500); stopSelf() }
+            return START_NOT_STICKY
+        }
+
+        if (isWakeWordMode) startWakeWordLoop() else startOneShot()
 
         return START_STICKY
     }
 
-    private fun buildNotification(listening: Boolean, wakeWord: Boolean): Notification {
-        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val title = when {
-            listening && wakeWord -> "JARVIS — Listening for Hey JARVIS"
-            listening -> "JARVIS — Listening"
-            wakeWord -> "JARVIS — Wake word active"
-            else -> "JARVIS — Voice ready"
-        }
-        val text = if (listening) "Microphone active" else "Tap notification to speak"
-        return NotificationCompat.Builder(this, "jarvis_service")
-            .setSmallIcon(android.R.drawable.presence_audio_online)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setOngoing(wakeWord || listening)
-            .setContentIntent(open)
-            .build()
-    }
-
-    private fun startOneShotListening() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            stopSelf()
-            return
-        }
+    private fun startOneShot() {
         lifecycleScope.launch {
             try {
                 isListening = true
-                startForeground(NOTIF_ID, buildNotification(true, false))
-                val result = listenOnce()
-                isListening = false
-                if (result != null) {
-                    handleUtterance(result)
-                }
                 updateNotification()
-                delay(2000)
+                val result = wakeEngine.listenForCommand(this@VoiceAssistantService)
+                isListening = false
+                if (result != null) handleUtterance(result)
+                updateNotification()
+                delay(1800)
                 stopSelf()
             } catch (e: Exception) {
                 isListening = false
                 updateNotification()
+                JarvisLogger.log(this@VoiceAssistantService, "VOICE_ONESHOT_ERROR", e.message ?: "unknown")
                 stopSelf()
             }
         }
     }
 
-    private fun startWakeWordListening() {
+    private fun startWakeWordLoop() {
         lifecycleScope.launch {
+            var consecutiveErrors = 0
             while (isWakeWordMode) {
                 try {
                     isListening = true
-                    startForeground(NOTIF_ID, buildNotification(true, true))
-                    val result = listenOnce()
+                    updateNotification()
+                    val wake = wakeEngine.listenForWakeWord(this@VoiceAssistantService)
                     isListening = false
-                    if (result != null && result.lowercase().contains("hey jarvis")) {
-                        // Wake word detected
-                        TtsManager.speak("Yes?")
-                        // Now listen for command
-                        isListening = true
-                        startForeground(NOTIF_ID, buildNotification(true, true))
-                        val command = listenOnce()
-                        isListening = false
-                        if (command != null) {
-                            handleUtterance(command.removePrefix("hey jarvis").trim())
+                    when (wake) {
+                        is com.shlok.jarvis.voice.WakeResult.WakeDetected -> {
+                            consecutiveErrors = 0
+                            TtsManager.speak("Yes?")
+                            isListening = true
+                            updateNotification()
+                            lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "COMMAND_LISTENING") } catch (_: Exception) {} }
+                            val cmd = wakeEngine.listenForCommand(this@VoiceAssistantService)
+                            isListening = false
+                            if (cmd != null) {
+                                val handled = handleUtterance(cmd)
+                                if (!handled) {
+                                    // If mode changed, TTS already spoken; else fallback
+                                    TtsManager.speak("I'm busy right now.")
+                                }
+                            } else {
+                                TtsManager.speak("I'm busy right now.")
+                            }
                         }
-                    } else if (result != null) {
-                        // No wake word, but got speech - treat as command if contains jarvis
-                        if (result.lowercase().contains("jarvis")) {
-                            handleUtterance(result)
+                        is com.shlok.jarvis.voice.WakeResult.Command -> {
+                            consecutiveErrors = 0
+                            // One-shot with wake word included: "Hey JARVIS, I'm busy"
+                            TtsManager.speak("Yes?")
+                            delay(300)
+                            handleUtterance(wake.text)
                         }
+                        else -> { /* no wake */ }
                     }
                     updateNotification()
-                    delay(500)
+                    consecutiveErrors = 0
+                    delay(400)
                 } catch (e: Exception) {
                     isListening = false
-                    delay(1000)
+                    consecutiveErrors++
+                    JarvisLogger.log(this@VoiceAssistantService, "WAKE_LOOP_ERROR", e.message ?: "unknown")
+                    if (consecutiveErrors > 5) {
+                        try { VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: loop failed $consecutiveErrors") } catch (_: Exception) {}
+                        delay(3000)
+                        consecutiveErrors = 0
+                    } else delay(1000)
                 }
             }
         }
@@ -148,9 +199,8 @@ class VoiceAssistantService : LifecycleService() {
     private fun updateNotification() {
         try {
             val nm = getSystemService(NotificationManager::class.java)
-            nm.notify(NOTIF_ID, buildNotification(isListening, isWakeWordMode))
+            nm.notify(NOTIF_ID, JarvisNotificationManager.buildVoiceNotification(this, isListening, isWakeWordMode))
         } catch (_: Exception) {}
-        // Update diagnostics state
         lifecycleScope.launch {
             try {
                 val state = when {
@@ -159,179 +209,50 @@ class VoiceAssistantService : LifecycleService() {
                     isWakeWordMode -> "MICROPHONE_READY"
                     else -> "STOPPED"
                 }
-                com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, state)
+                VoiceDiagnostics.setState(this@VoiceAssistantService, state)
             } catch (_: Exception) {}
         }
     }
 
-    private suspend fun listenOnce(): String? {
-        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-            try {
-                // Check permission first
-                if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    // Don't call suspend here - just resume
-                    if (cont.isActive) cont.resume(null, null)
-                    return@suspendCancellableCoroutine
-                }
-                val r = SpeechRecognizer.createSpeechRecognizer(this)
-                recognizer = r
-                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
-                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 800L)
-                }
-                r.setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: android.os.Bundle?) {
-                        lifecycleScope.launch { com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "MICROPHONE_READY") }
-                    }
-                    override fun onBeginningOfSpeech() {
-                        lifecycleScope.launch {
-                            com.shlok.jarvis.storage.VoiceDiagnostics.setLastAudio(this@VoiceAssistantService, System.currentTimeMillis())
-                            com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "AUDIO_STREAM_STARTED")
-                        }
-                    }
-                    override fun onRmsChanged(rmsdB: Float) {
-                        // Update mic level for diagnostics (0-10)
-                        val level = (rmsdB + 2f).coerceIn(0f, 10f).toInt().toString()
-                        lifecycleScope.launch { com.shlok.jarvis.storage.VoiceDiagnostics.setMicLevel(this@VoiceAssistantService, level) }
-                    }
-                    override fun onBufferReceived(buffer: ByteArray?) {}
-                    override fun onEndOfSpeech() {}
-                    override fun onError(error: Int) {
-                        lifecycleScope.launch {
-                            val msg = when (error) {
-                                SpeechRecognizer.ERROR_AUDIO -> "Audio error"
-                                SpeechRecognizer.ERROR_CLIENT -> "Client error"
-                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permission error - mic denied"
-                                SpeechRecognizer.ERROR_NETWORK -> "Network error"
-                                SpeechRecognizer.ERROR_NO_MATCH -> "No match"
-                                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Busy"
-                                SpeechRecognizer.ERROR_SERVER -> "Server error"
-                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Timeout"
-                                else -> "Error $error"
-                            }
-                            com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: $msg")
-                            JarvisLogger.log(this@VoiceAssistantService, "WAKE_ENGINE_ERROR", msg)
-                        }
-                        if (cont.isActive) cont.resume(null, null)
-                    }
-                    override fun onResults(results: android.os.Bundle?) {
-                        val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        val text = list?.firstOrNull()
-                        lifecycleScope.launch {
-                            if (text != null) com.shlok.jarvis.storage.VoiceDiagnostics.setLastAudio(this@VoiceAssistantService, System.currentTimeMillis())
-                        }
-                        if (cont.isActive) cont.resume(text, null)
-                    }
-                    override fun onPartialResults(partialResults: android.os.Bundle?) {}
-                    override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
-                })
-                r.startListening(intent)
-                // Log that we actually started listening (proves mic is receiving)
-                lifecycleScope.launch {
-                    JarvisLogger.log(this@VoiceAssistantService, "AUDIO_STREAM_STARTED", "SpeechRecognizer started")
-                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "WAKE_DETECTING")
-                }
-                cont.invokeOnCancellation { try { r.destroy() } catch (_: Exception) {} }
-            } catch (e: Exception) {
-                lifecycleScope.launch {
-                    com.shlok.jarvis.storage.VoiceDiagnostics.setState(this@VoiceAssistantService, "ERROR: ${e.message}")
-                    JarvisLogger.log(this@VoiceAssistantService, "MICROPHONE_ERROR", e.message ?: "unknown")
-                }
-                if (cont.isActive) cont.resume(null, null)
-            }
-        }
-    }
-
-    private suspend fun handleUtterance(utterance: String) {
-        try {
-            val lower = utterance.lowercase().trim().removePrefix("hey jarvis").removePrefix("jarvis").trim()
+    private suspend fun handleUtterance(utterance: String): Boolean {
+        return try {
             val prefs = JarvisPreferences(this)
-            val engine = SmartModeEngine(prefs)
-
-            // Check for cancel/available
-            if (lower.contains("available") || lower.contains("cancel") || lower.contains("disable")) {
-                val mode = SmartMode.AVAILABLE
-                engine.setMode(this, mode)
-                TtsManager.speak("You're available, Shlok.")
-                JarvisLogger.log(this, "VOICE_CMD", "available: $utterance")
-                return
-            }
-
-            // Check for what mode / how long
-            if (lower.contains("what mode") || lower.contains("how long")) {
-                val current = engine.getCurrentMode(this)
-                TtsManager.speak("You're in ${current.displayName} mode.")
-                return
-            }
-            if (lower.contains("who called") || lower.contains("show messages")) {
-                TtsManager.speak("Check your call history in the app.")
-                return
-            }
-
-            val mode = SmartModeMapper.fromUtterance(lower)
-            if (mode != null) {
-                val (start, end) = TimeParser.parse(lower)
-                if (start != null && start > System.currentTimeMillis() + 30_000) {
-                    // Scheduled for future
-                    com.shlok.jarvis.storage.ScheduledModeStore.add(this, com.shlok.jarvis.engine.ScheduledMode(
-                        id = System.currentTimeMillis().toString(),
-                        mode = mode,
-                        startTime = start,
-                        endTime = end ?: (start + 2*60*60*1000),
-                        privacy = com.shlok.jarvis.engine.PrivacyLevel.MEDIUM
-                    ))
-                    com.shlok.jarvis.service.ModeScheduler.schedule(this, com.shlok.jarvis.engine.ScheduledMode(
-                        id = System.currentTimeMillis().toString(),
-                        mode = mode,
-                        startTime = start,
-                        endTime = end ?: (start + 2*60*60*1000)
-                    ))
-                    val fmt = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).format(java.util.Date(start))
-                    TtsManager.speak("Got it. I'll switch to ${mode.displayName} at $fmt.")
-                } else if (end != null && end > System.currentTimeMillis()) {
-                    // For duration
-                    engine.setMode(this, mode)
-                    com.shlok.jarvis.storage.ScheduledModeStore.add(this, com.shlok.jarvis.engine.ScheduledMode(
-                        id = System.currentTimeMillis().toString(),
-                        mode = mode,
-                        startTime = System.currentTimeMillis(),
-                        endTime = end
-                    ))
-                    com.shlok.jarvis.service.ModeScheduler.schedule(this, com.shlok.jarvis.engine.ScheduledMode(
-                        id = System.currentTimeMillis().toString(),
-                        mode = mode,
-                        startTime = System.currentTimeMillis(),
-                        endTime = end
-                    ))
-                    val mins = ((end - System.currentTimeMillis()) / 60000).toInt()
-                    TtsManager.speak("${mode.displayName} mode is active for the next ${if (mins >= 60) "${mins/60} hours" else "$mins minutes"}.")
-                } else {
-                    engine.setMode(this, mode)
-                    val ack = when (mode) {
-                        SmartMode.EXAM -> "Understood. I'll activate Exam Mode."
-                        SmartMode.MEETING -> "Meeting mode on. I'll handle your calls."
-                        SmartMode.DRIVING -> "Driving mode on."
-                        SmartMode.SLEEP -> "Sleep mode on."
-                        else -> mode.status.spokenAck
-                    }
-                    TtsManager.speak(ack)
-                }
-                JarvisLogger.log(this, "VOICE_CMD", "${mode.name}: $utterance")
+            val modeManager = ModeManager(prefs)
+            val result = modeManager.setModeByUtterance(this, utterance)
+            if (result.isSuccess) {
+                val ack = result.getOrNull()?.ack ?: "Done."
+                TtsManager.speak(ack)
+                JarvisLogger.log(this, "VOICE_CMD", "${result.getOrNull()?.mode?.name}: $utterance")
+                true
             } else {
-                TtsManager.speak("Sorry Shlok, I didn't catch that. Try: I'm busy or I'm in an exam.")
-                JarvisLogger.log(this, "VOICE_UNKNOWN", utterance)
+                // Check special queries
+                val lower = utterance.lowercase().trim().removePrefix("hey jarvis").removePrefix("jarvis").trim()
+                when {
+                    lower.contains("what mode") || lower.contains("how long") -> {
+                        val cur = modeManager.getCurrentMode(this)
+                        TtsManager.speak("You're in ${cur.displayName} mode.")
+                        true
+                    }
+                    lower.contains("who called") || lower.contains("show messages") || lower.contains("show calls") -> {
+                        TtsManager.speak("Check your call history in the app.")
+                        true
+                    }
+                    else -> {
+                        TtsManager.speak("Sorry Shlok, I didn't catch that. Try: I'm busy or I'm in an exam.")
+                        JarvisLogger.log(this, "VOICE_UNKNOWN", utterance)
+                        false
+                    }
+                }
             }
         } catch (e: Exception) {
             android.util.Log.e("VoiceService", "handle error", e)
+            false
         }
     }
 
     override fun onDestroy() {
-        try { recognizer?.destroy() } catch (_: Exception) {}
+        // Fire-and-forget state update — don't block destroy
+        try { lifecycleScope.launch { try { VoiceDiagnostics.setState(this@VoiceAssistantService, "STOPPED") } catch (_: Exception) {} } } catch (_: Exception) {}
         super.onDestroy()
     }
 }

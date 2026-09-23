@@ -14,26 +14,51 @@ enum class SmartMode(
     val callResponse: String
 ) {
     AVAILABLE("AVAILABLE", "Available", 0, JarvisStatus.AVAILABLE, "Shlok is available."),
-    BUSY("BUSY", "Busy", 10, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently busy and unable to take the call. Would you like to leave a message?"),
-    EXAM("EXAM", "Exam", 90, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently in an exam and cannot take the call. Please leave a message and I'll make sure he receives it."),
-    MEETING("MEETING", "Meeting", 80, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently in a meeting and cannot take the call. Please leave a message."),
-    DRIVING("DRIVING", "Driving", 70, JarvisStatus.DRIVING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently driving and cannot safely answer the phone. Please leave a message."),
-    SLEEP("SLEEP", "Sleeping", 60, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently resting and may not be available. Please leave a message."),
-    REST("REST", "Resting", 50, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently resting and may not be available. Please leave a message."),
-    STUDY("STUDY", "Studying", 55, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently studying and is unavailable at the moment. Please leave a message."),
-    CLASS("CLASS", "In class", 65, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently in class and cannot take the call. Please leave a message."),
-    WORK("WORK", "Working", 45, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently working and may not be able to answer. Please leave a message."),
-    GYM("GYM", "At gym", 40, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently working out and may not be able to answer. Please leave a message."),
-    DND("DND", "Do not disturb", 95, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is not available at the moment. Please leave a message."),
-    TRAVEL("TRAVEL", "Traveling", 35, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently traveling and may not be available. Please leave a message."),
-    EATING("EATING", "Eating", 20, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently unavailable. Please leave a message."),
-    CINEMA("CINEMA", "At cinema", 30, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently unavailable. Please leave a message."),
-    FOCUS("FOCUS", "Focus mode", 75, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently in focus mode and cannot take the call. Please leave a message."),
-    CUSTOM("CUSTOM", "Custom", 15, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently unavailable. Please leave a message.");
+    BUSY("BUSY", "Busy", 10, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently busy and can't take the call. Please leave a message."),
+    DND("DND", "Do not disturb", 95, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is not available at the moment. Please leave a message."),
+    DRIVING("DRIVING", "Driving", 70, JarvisStatus.DRIVING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently driving and can't safely answer the call. Please leave a message."),
+    SLEEPING("SLEEPING", "Sleeping", 60, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently resting and isn't available right now. Please leave a message."),
+    RESTING("RESTING", "Resting", 50, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently resting and isn't available right now. Please leave a message."),
+    STUDYING("STUDYING", "Studying", 55, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently studying and is unavailable at the moment. Please leave a message."),
+    CLASS("CLASS", "In class", 65, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently in class and cannot take the call. Please leave a message."),
+    MEETING("MEETING", "Meeting", 80, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently in a meeting and can't take the call. Please leave a message."),
+    WORKING("WORKING", "Working", 45, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently working and may not be able to answer. Please leave a message."),
+    EXAM("EXAM", "Exam", 90, JarvisStatus.MEETING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently in an exam and can't take the call. Please leave a message."),
+    GYM("GYM", "At gym", 40, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently at the gym and can't take the call. Please leave a message."),
+    CINEMA("CINEMA", "At cinema", 30, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently at the cinema and can't take the call. Please leave a message."),
+    CUSTOM("CUSTOM", "Custom", 15, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently unavailable. Please leave a message."),
+
+    // Backward compat aliases — map old names to new canonical modes
+    SLEEP("SLEEPING", "Sleeping", 60, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently resting and isn't available right now. Please leave a message."),
+    REST("RESTING", "Resting", 50, JarvisStatus.SLEEPING, "Hello, I'm JARVIS, Shlok's AI assistant. He's currently resting and isn't available right now. Please leave a message."),
+    STUDY("STUDYING", "Studying", 55, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently studying and is unavailable at the moment. Please leave a message."),
+    WORK("WORKING", "Working", 45, JarvisStatus.BUSY, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently working and may not be able to answer. Please leave a message."),
+    FOCUS("FOCUS", "Focus", 75, JarvisStatus.DND, "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently in focus mode and cannot take the call. Please leave a message.");
 
     companion object {
-        fun fromString(name: String): SmartMode = entries.find { it.name.equals(name, ignoreCase = true) } ?: AVAILABLE
-        fun fromStatus(status: JarvisStatus): SmartMode = entries.find { it.status == status } ?: AVAILABLE
+        fun fromString(name: String): SmartMode {
+            val n = name.uppercase().trim()
+            // Handle legacy aliases
+            return when (n) {
+                "SLEEP" -> SLEEPING
+                "REST" -> RESTING
+                "STUDY" -> STUDYING
+                "WORK" -> WORKING
+                "TRAVEL", "EATING", "FOCUS" -> BUSY
+                else -> entries.find { it.name.equals(n, true) } ?: AVAILABLE
+            }
+        }
+        fun fromStatus(status: JarvisStatus): SmartMode = entries.find { it.status == status && it.name in setOf("AVAILABLE","BUSY","DND","DRIVING","SLEEPING","MEETING") } ?: when(status){
+            JarvisStatus.AVAILABLE -> AVAILABLE
+            JarvisStatus.BUSY -> BUSY
+            JarvisStatus.DND -> DND
+            JarvisStatus.DRIVING -> DRIVING
+            JarvisStatus.SLEEPING -> SLEEPING
+            JarvisStatus.MEETING -> MEETING
+            else -> AVAILABLE
+        }
+        // All spec modes
+        fun specModes(): List<SmartMode> = listOf(AVAILABLE, BUSY, DND, DRIVING, SLEEPING, RESTING, STUDYING, CLASS, MEETING, WORKING, EXAM, GYM, CINEMA, CUSTOM)
     }
 }
 
@@ -131,39 +156,71 @@ object TimeParser {
 object SmartModeMapper {
     fun fromUtterance(utterance: String): SmartMode? {
         val lower = utterance.lowercase()
+        // Check custom first - e.g. "I'm at the gym" -> GYM, "I'm at the cinema" -> CINEMA
+        // Then priority modes
         return when {
             lower.contains("exam") -> SmartMode.EXAM
             lower.contains("meeting") -> SmartMode.MEETING
             lower.contains("driving") || lower.contains("drive") -> SmartMode.DRIVING
-            lower.contains("sleep") || lower.contains("sleeping") -> SmartMode.SLEEP
-            lower.contains("rest") || lower.contains("resting") -> SmartMode.REST
-            lower.contains("study") || lower.contains("studying") -> SmartMode.STUDY
+            lower.contains("sleep") || lower.contains("sleeping") || lower.contains("going to sleep") -> SmartMode.SLEEPING
+            lower.contains("resting") || (lower.contains("rest") && !lower.contains("restaurant")) -> SmartMode.RESTING
+            lower.contains("study") || lower.contains("studying") -> SmartMode.STUDYING
             lower.contains("class") -> SmartMode.CLASS
-            lower.contains("work") || lower.contains("working") -> SmartMode.WORK
+            lower.contains("working") || (lower.contains("work") && !lower.contains("wake")) -> SmartMode.WORKING
             lower.contains("gym") -> SmartMode.GYM
-            lower.contains("dnd") || lower.contains("don't disturb") || lower.contains("do not disturb") -> SmartMode.DND
-            lower.contains("travel") || lower.contains("traveling") -> SmartMode.TRAVEL
-            lower.contains("eating") || lower.contains("eat") -> SmartMode.EATING
             lower.contains("cinema") || lower.contains("movie") -> SmartMode.CINEMA
-            lower.contains("focus") -> SmartMode.FOCUS
+            lower.contains("dnd") || lower.contains("don't disturb") || lower.contains("do not disturb") -> SmartMode.DND
             lower.contains("busy") -> SmartMode.BUSY
             lower.contains("available") -> SmartMode.AVAILABLE
+            // Custom fallback: e.g. "I'm at the gym" already handled, but "I'm at the cafe" -> CUSTOM with custom description
+            lower.contains("at the") || lower.contains("at a") -> SmartMode.CUSTOM
             else -> null
         }
+    }
+    // For custom utterances like "I'm at the gym" we can extract location for dynamic response
+    fun extractCustomLocation(utterance: String): String? {
+        val lower = utterance.lowercase()
+        Regex("""at (?:the )?([a-z\s]+?)(?:\.|,|$)""").find(lower)?.let { return it.groupValues[1].trim() }
+        Regex("""in (?:a |an )?([a-z\s]+?)(?:\.|,|$)""").find(lower)?.let { return it.groupValues[1].trim() }
+        return null
     }
 }
 
 object ResponseGenerator {
+    // CallContext as per spec §16
+    data class CallContext(
+        val caller: String? = null,
+        val mode: SmartMode,
+        val time: Long = System.currentTimeMillis(),
+        val customMessage: String? = null
+    )
     fun generate(mode: SmartMode, privacy: PrivacyLevel, caller: String? = null): String {
+        return generate(CallContext(caller, mode, customMessage = null), privacy)
+    }
+    fun generate(ctx: CallContext, privacy: PrivacyLevel): String {
+        // If custom message set (e.g. "tell callers I'm studying"), use it
+        ctx.customMessage?.let { return it }
+        // If mode is CUSTOM with caller context, use generic unavailable
+        if (ctx.mode == SmartMode.CUSTOM) {
+            return "Hello, I'm JARVIS, Shlok's AI assistant. He's currently unavailable and can't take the call. Please leave a message."
+        }
         val base = when (privacy) {
-            PrivacyLevel.LOW -> mode.callResponse
-            PrivacyLevel.MEDIUM -> when (mode) {
-                SmartMode.EXAM -> "Hello, I'm JARVIS, Shlok's assistant. He's currently unavailable because he's in an exam. Please leave a message."
-                SmartMode.DRIVING -> "Hello, I'm JARVIS, Shlok's assistant. He's currently driving and can't safely take the call. Please leave a message."
-                SmartMode.SLEEP, SmartMode.REST -> "Hello, I'm JARVIS, Shlok's assistant. He's currently unavailable and may not be able to answer. Please leave a message."
-                else -> "Hello, I'm JARVIS, Shlok's assistant. He's currently ${mode.description.lowercase()} and can't take the call. Please leave a message."
+            PrivacyLevel.LOW -> ctx.mode.callResponse
+            PrivacyLevel.MEDIUM -> when (ctx.mode) {
+                SmartMode.EXAM -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently in an exam and can't take the call. Please leave a message."
+                SmartMode.DRIVING -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently driving and can't safely answer the call. Please leave a message."
+                SmartMode.SLEEPING, SmartMode.RESTING -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently resting and isn't available right now. Please leave a message."
+                SmartMode.MEETING -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently in a meeting and can't take the call. Please leave a message."
+                SmartMode.BUSY -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently busy and can't take the call. Please leave a message."
+                SmartMode.CINEMA -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently at the cinema and can't take the call. Please leave a message."
+                SmartMode.GYM -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently at the gym and can't take the call. Please leave a message."
+                SmartMode.STUDYING -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently studying and can't take the call. Please leave a message."
+                SmartMode.CLASS -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently in class and can't take the call. Please leave a message."
+                SmartMode.WORKING -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently working and can't take the call. Please leave a message."
+                SmartMode.DND -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently not available. Please leave a message."
+                else -> "Hello, I'm JARVIS, Shlok's AI assistant. He's currently ${ctx.mode.description.lowercase()} and can't take the call. Please leave a message."
             }
-            PrivacyLevel.HIGH -> "Hello, I'm JARVIS, Shlok's personal assistant. Shlok is currently unavailable and cannot take the call. Please leave a message."
+            PrivacyLevel.HIGH -> "Hello, I'm JARVIS, Shlok's AI assistant. Shlok is currently unavailable and cannot take the call. Please leave a message."
         }
         return base
     }

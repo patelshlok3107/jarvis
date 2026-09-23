@@ -30,6 +30,8 @@ object PrefKeys {
     val TPL_DRIVING = stringPreferencesKey("tpl_driving")
     val TPL_SLEEPING = stringPreferencesKey("tpl_sleeping")
     val TPL_MEETING = stringPreferencesKey("tpl_meeting")
+    val CUSTOM_CALL_MESSAGE = stringPreferencesKey("custom_call_message")
+    val VOICE_WAKE_ENABLED = booleanPreferencesKey("voice_wake_enabled")
     // encrypted transcript store key prefix handled separately
 }
 

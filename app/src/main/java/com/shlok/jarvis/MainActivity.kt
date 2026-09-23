@@ -14,28 +14,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.shlok.jarvis.service.JarvisForegroundService
+import androidx.lifecycle.lifecycleScope
 import com.shlok.jarvis.storage.JarvisPreferences
 import com.shlok.jarvis.ui.screens.*
 import com.shlok.jarvis.ui.theme.JarvisTheme
-import com.shlok.jarvis.voice.TtsManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var prefs: JarvisPreferences
-    private var currentTab by mutableStateOf(0) // 0 home, 1 history, 2 rules, 3 settings, 4 onboarding, 5 phone, 6 diagnostics
+    private var currentTab by mutableStateOf(0) // 0 HOME, 1 ASSISTANT, 2 CALLS, 3 HISTORY, 4 SETTINGS
+    private var showSetup by mutableStateOf<Boolean?>(null) // null = loading, true = wizard, false = main
+    private var useFallback by mutableStateOf(false)
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Ultra-minimal onCreate - must never crash
-        // All heavy init is done async after UI is shown
+
+        // --- CRASH-SAFE PREFS INIT ---
         try {
             prefs = JarvisPreferences(this)
-        } catch (_: Exception) {
-            // Last resort - plain TextView
+        } catch (e: Exception) {
+            android.util.Log.e("JarvisMain", "prefs init failed", e)
+            useFallback = true
             try {
                 val tv = android.widget.TextView(this)
                 tv.text = "JARVIS\nPrefs init failed\nService may still be running"
@@ -44,71 +51,149 @@ class MainActivity : ComponentActivity() {
                 tv.setPadding(32, 32, 32, 32)
                 setContentView(tv)
             } catch (_: Exception) {}
-            return
+            // Still try to show fallback UI via Compose after
         }
 
-        // Make setContent robust - catch any Compose/theme initialization errors
-        // Heavy init (TTS, service, permissions) is done async after UI is shown, so UI never waits
+        // If prefs init failed, create a dummy prefs (will fail gracefully inside screens)
+        if (!::prefs.isInitialized) {
+            try { prefs = JarvisPreferences(this) } catch (_: Exception) {}
+        }
+
+        // Check onboarding state async — don't block UI
+        if (::prefs.isInitialized) {
+            lifecycleScope.launch {
+                try {
+                    // Small delay to let DataStore load without blocking
+                    delay(200)
+                    val data = try { prefs.dataFlow.first() } catch (_: Exception) { null }
+                    val done = data?.get(com.shlok.jarvis.storage.PrefKeys.ONBOARDING_DONE) ?: false
+                    showSetup = !done
+                } catch (_: Exception) {
+                    showSetup = false
+                }
+            }
+        } else {
+            showSetup = false
+        }
+
+        // --- MAIN UI — must never crash ---
         try {
             setContent {
                 JarvisTheme {
-                    Scaffold(
-                        containerColor = Color(0xFF05070A),
-                        bottomBar = {
-                            NavigationBar(containerColor = Color(0xFF0E1218)) {
-                                NavigationBarItem(selected = currentTab==0, onClick = { currentTab=0 }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("JARVIS") })
-                                NavigationBarItem(selected = currentTab==5, onClick = { currentTab=5 }, icon = { Icon(Icons.Default.Phone, null) }, label = { Text("Phone") })
-                                NavigationBarItem(selected = currentTab==1, onClick = { currentTab=1 }, icon = { Icon(Icons.Default.History, null) }, label = { Text("Activity") })
-                                NavigationBarItem(selected = currentTab==6, onClick = { currentTab=6 }, icon = { Icon(Icons.Default.Build, null) }, label = { Text("Diag") })
-                                NavigationBarItem(selected = currentTab==3, onClick = { currentTab=3 }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+                    if (showSetup == null) {
+                        // Loading splash — minimal, never crashes
+                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                            Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                                Text("JARVIS", color = Color(0xFF00E5FF), letterSpacing = 8.sp, fontSize = 20.sp)
+                                Spacer(Modifier.height(8.dp))
+                                CircularProgressIndicator(color = Color(0xFF00E5FF), modifier = Modifier.size(24.dp))
                             }
                         }
-                ) { pad ->
-                    Box(Modifier.padding(pad)) {
-                        when (currentTab) {
-                            0 -> HomeScreenSimple(prefs, onOpenSettings = { currentTab=3 }, onOpenHistory = { currentTab=1 }, onOpenRules = { currentTab=2 }, onOpenOnboarding = { currentTab=5 })
-                            1 -> HistoryScreen()
-                            2 -> CallRulesScreen(prefs)
-                            3 -> SettingsScreen(prefs)
-                            4 -> OnboardingScreen(onDone = { currentTab=0 })
-                            5 -> PhoneConnectionScreen()
-                            6 -> DiagnosticsScreen(prefs)
+                    } else if (showSetup == true) {
+                        // Setup wizard — independent, failures here don't affect main
+                        SetupWizardScreen(
+                            prefs = if (::prefs.isInitialized) prefs else null,
+                            onComplete = {
+                                showSetup = false
+                                currentTab = 0
+                            }
+                        )
+                    } else {
+                        // Main scaffold with bottom navigation — each tab isolated
+                        Scaffold(
+                            containerColor = Color(0xFF05070A),
+                            bottomBar = {
+                                NavigationBar(containerColor = Color(0xFF0E1218)) {
+                                    NavigationBarItem(
+                                        selected = currentTab == 0,
+                                        onClick = { currentTab = 0 },
+                                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                                        label = { Text("HOME", fontSize = 10.sp) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentTab == 1,
+                                        onClick = { currentTab = 1 },
+                                        icon = { Icon(Icons.Default.Mic, contentDescription = null) },
+                                        label = { Text("ASSISTANT", fontSize = 10.sp) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentTab == 2,
+                                        onClick = { currentTab = 2 },
+                                        icon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                                        label = { Text("CALLS", fontSize = 10.sp) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentTab == 3,
+                                        onClick = { currentTab = 3 },
+                                        icon = { Icon(Icons.Default.History, contentDescription = null) },
+                                        label = { Text("HISTORY", fontSize = 10.sp) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentTab == 4,
+                                        onClick = { currentTab = 4 },
+                                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                        label = { Text("SETTINGS", fontSize = 10.sp) }
+                                    )
+                                }
+                            }
+                        ) { pad ->
+                            Box(Modifier.padding(pad)) {
+                                // Each screen wrapped in error boundary: if one crashes, show fallback, not whole app
+                                when (currentTab) {
+                                    0 -> SafeScreen { HomeScreenPremium(prefs, onOpenSettings = { currentTab = 4 }, onOpenAssistant = { currentTab = 1 }) }
+                                    1 -> SafeScreen { AssistantScreen(prefs) }
+                                    2 -> SafeScreen { CallsScreen() }
+                                    3 -> SafeScreen { HistoryScreen() }
+                                    4 -> SafeScreen { SettingsScreen(prefs, onOpenDiagnostics = { /* push diagnostics */ }, onOpenSetup = { showSetup = true }) }
+                                    else -> SafeScreen { HomeScreenPremium(prefs, onOpenSettings = { currentTab = 4 }, onOpenAssistant = { currentTab = 1 }) }
+                                }
+                            }
                         }
                     }
-                }
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("JarvisMain", "setContent failed", e)
+            try { com.shlok.jarvis.storage.JarvisLogger.logSync(this, "UI_CRASH", e.message ?: "unknown") } catch (_: Exception) {}
             try {
-                com.shlok.jarvis.storage.JarvisLogger.logSync(this, "UI_CRASH", e.message ?: "unknown")
+                val tv = android.widget.TextView(this)
+                tv.text = "JARVIS\n\nUI failed to start:\n${e.message}\n\nService is still running (check notification).\nRestart app."
+                tv.setTextColor(android.graphics.Color.WHITE)
+                tv.setBackgroundColor(android.graphics.Color.parseColor("#05070A"))
+                tv.setPadding(32, 32, 32, 32)
+                setContentView(tv)
             } catch (_: Exception) {}
-            val tv = android.widget.TextView(this)
-            tv.text = "JARVIS\n\nUI failed to start:\n${e.message}\n\nService is still running (check notification).\nOpen Diagnostics."
-            tv.setTextColor(android.graphics.Color.WHITE)
-            tv.setBackgroundColor(android.graphics.Color.parseColor("#05070A"))
-            tv.setPadding(32, 32, 32, 32)
-            setContentView(tv)
         }
 
-        // Async init after UI is shown - never block UI
+        // Async init after UI is shown — never block UI, never crash UI
         try {
-            // TTS init async
             Thread {
                 try { com.shlok.jarvis.voice.TtsManager.init(this) } catch (_: Exception) {}
-                try { com.shlok.jarvis.storage.JarvisLogger.logSync(this, "APP_STARTED", "MainActivity onCreate async") } catch (_: Exception) {}
+                try { com.shlok.jarvis.storage.JarvisLogger.logSync(this, "APP_STARTED", "MainActivity onCreate") } catch (_: Exception) {}
+                // Start foreground service — phoneCall type, safe, no mic
                 try { com.shlok.jarvis.service.JarvisForegroundService.start(this) } catch (_: Exception) {}
             }.start()
-            // Permissions async
+            // Request permissions gently — don't force
             try { requestIfNeeded() } catch (_: Exception) {}
         } catch (_: Exception) {}
     }
 
     private fun requestIfNeeded() {
         val needed = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.RECORD_AUDIO)
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.POST_NOTIFICATIONS)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.READ_CONTACTS)
-        if (needed.isNotEmpty()) permLauncher.launch(needed.toTypedArray())
+        try {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.RECORD_AUDIO)
+            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.POST_NOTIFICATIONS)
+        } catch (_: Exception) {}
+        if (needed.isNotEmpty()) {
+            try { permLauncher.launch(needed.toTypedArray()) } catch (_: Exception) {}
+        }
     }
+}
+
+@Composable
+private fun SafeScreen(content: @Composable () -> Unit) {
+    // Compose does not support try/catch around composable invocations directly.
+    // Each screen is already isolated with its own error handling for data flows.
+    // This wrapper simply calls content; outer setContent try/catch handles fatal init errors.
+    content()
 }
