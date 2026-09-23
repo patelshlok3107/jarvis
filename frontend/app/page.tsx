@@ -65,9 +65,9 @@ export default function Page() {
 
   const s = statuses[current];
   return (
-    <div style={{maxWidth:420,margin:"0 auto",minHeight:"100vh",background:"#05070A",borderLeft:"1px solid #111",borderRight:"1px solid #111",display:"flex",flexDirection:"column"}}>
-      <div style={{display:"flex",justifyContent:"space-between",padding:"12px 16px",fontSize:10,letterSpacing:3,color:"rgba(255,255,255,.5)"}}>
-        <span>JARVIS</span><span>{API_URL ? health : "Offline - Android is backend"}</span>
+    <div style={{maxWidth:420,margin:"0 auto",minHeight:"100vh",background:"#121315",borderLeft:"1px solid #1A1C1D",borderRight:"1px solid #1A1C1D",display:"flex",flexDirection:"column"}}>
+      <div style={{display:"flex",justifyContent:"space-between",padding:"12px 16px",fontSize:10,letterSpacing:3,color:"rgba(187,201,205,.8)"}}>
+        <span>JARVIS • v2.1.0 Obsidian</span><span>{API_URL ? health : "Offline - Android is backend"}</span>
       </div>
 
       {tab==="home" && (
