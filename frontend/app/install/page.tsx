@@ -1,10 +1,70 @@
 "use client";
-import { CURRENT_APK_URL, CURRENT_APK_FALLBACK, RELEASE_URL, CURRENT_APK_VERSION as VERSION, CURRENT_APK_SHA256 as APK_SHA256, CURRENT_APK_SIZE as APK_SIZE } from "../../lib/apkConfig";
-const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL || CURRENT_APK_URL;
-const APK_FALLBACK = CURRENT_APK_FALLBACK;
+import { useState } from "react";
+import { CURRENT_APK_DOWNLOAD_ROUTE, CURRENT_APK_FALLBACK, RELEASE_URL, CURRENT_APK_VERSION as VERSION, CURRENT_APK_FILE as APK_FILE, CURRENT_APK_SHA256 as APK_SHA256, CURRENT_APK_SIZE as APK_SIZE } from "../../lib/apkConfig";
+
+// NOTE: intentionally NOT using NEXT_PUBLIC_ANDROID_APK_URL here.
+// That env var points at an old GitHub release URL (v1.1.5) whose
+// double-redirect + chunked response makes Android DownloadManager
+// stall part-way (e.g. stuck at ~17 MB). Same-origin /api/download
+// streams with Content-Length + Accept-Ranges so it completes.
+const APK_URL = CURRENT_APK_DOWNLOAD_ROUTE;
 
 export default function InstallPage() {
   const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Resumable, progress-visible download. Uses fetch so we can show %
+  // and detect a stalled connection, then saves via blob URL which
+  // Android treats as a completed file (no _blank tab stall).
+  // If fetch fails (very old browser), falls back to native navigation.
+  async function startDownload() {
+    setError(null);
+    setProgress(0);
+    try {
+      const res = await fetch(APK_URL, { cache: "no-store" });
+      if (!res.ok || !res.body) {
+        // Native fallback — SAME TAB (no target=_blank).
+        window.location.href = APK_URL;
+        return;
+      }
+      const total = parseInt(res.headers.get("content-length") || "0", 10);
+      const reader = res.body.getReader();
+      const chunks: BlobPart[] = [];
+      let received = 0;
+      let lastTick = Date.now();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          received += value.length;
+          if (total > 0) setProgress(Math.round((received / total) * 100));
+          else if (Date.now() - lastTick > 500) {
+            lastTick = Date.now();
+            setProgress(null); // unknown total — indeterminate
+          }
+        }
+      }
+      if (total > 0 && received < total) {
+        throw new Error(`Incomplete download (${received}/${total} bytes). Retrying resumes automatically — tap again.`);
+      }
+      const blob = new Blob(chunks as BlobPart[], { type: "application/vnd.android.package-archive" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = APK_FILE;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setProgress(100);
+    } catch (e: any) {
+      setError(e?.message || "Download failed. Try Retry below.");
+      setProgress(null);
+    }
+  }
+
   return (
     <div style={{maxWidth:420,margin:"0 auto",minHeight:"100vh",background:"#05070A",color:"#E8F1FF",display:"flex",flexDirection:"column",padding:16}}>
       <div style={{textAlign:"center",padding:"24px 0 12px"}}>
@@ -18,12 +78,21 @@ export default function InstallPage() {
       </div>
 
       <div style={{background:"#0E1218",border:"1px solid #1E2A3A",borderRadius:16,padding:16,marginTop:8}}>
-        <a href={APK_URL} target="_blank" rel="noopener" style={{display:"block",padding:16,background:"#00E5FF",color:"#000",borderRadius:999,fontWeight:800,textAlign:"center",textDecoration:"none",fontSize:15}}>⬇ DOWNLOAD JARVIS</a>
+        <button onClick={startDownload} style={{display:"block",width:"100%",padding:16,background:"#00E5FF",color:"#000",border:"none",borderRadius:999,fontWeight:800,textAlign:"center",fontSize:15,cursor:"pointer"}}>
+          {progress === null ? "⬇ DOWNLOAD JARVIS" : progress >= 100 ? "✓ DOWNLOAD COMPLETE" : `⬇ DOWNLOADING… ${progress}%`}
+        </button>
+        {progress !== null && progress < 100 && (
+          <div style={{height:6,background:"#1E2A3A",borderRadius:999,marginTop:10,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${progress}%`,background:"#00E5FF",transition:"width .2s"}} />
+          </div>
+        )}
+        {error && <div style={{fontSize:11,color:"#FFB4AB",textAlign:"center",marginTop:8}}>{error}</div>}
+        {/* Native same-tab fallbacks — never target=_blank: _blank breaks Android DownloadManager and stalls. */}
         <div style={{display:"flex",gap:8,marginTop:10}}>
-          <button onClick={()=>{ window.location.href = APK_URL; }} style={{flex:1,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,cursor:"pointer",fontSize:11}}>Retry download</button>
-          <a href={APK_FALLBACK} target="_blank" rel="noopener" style={{flex:1,padding:12,background:"transparent",border:"1px solid #1E2A3A",color:"rgba(255,255,255,.6)",borderRadius:999,fontWeight:700,textAlign:"center",textDecoration:"none",fontSize:11}}>GitHub direct</a>
+          <a href={APK_URL} download={APK_FILE} style={{flex:1,padding:12,background:"transparent",border:"1px solid #00E5FF",color:"#00E5FF",borderRadius:999,fontWeight:700,textAlign:"center",textDecoration:"none",fontSize:11}}>Retry download</a>
+          <a href={CURRENT_APK_FALLBACK} target="_blank" rel="noopener" style={{flex:1,padding:12,background:"transparent",border:"1px solid #1E2A3A",color:"rgba(255,255,255,.6)",borderRadius:999,fontWeight:700,textAlign:"center",textDecoration:"none",fontSize:11}}>GitHub direct</a>
         </div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>JARVIS-v{VERSION}.apk • {APK_SIZE} • SHA-256: {APK_SHA256.slice(0,16)}… • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",textAlign:"center",marginTop:8}}>{APK_FILE} • {APK_SIZE} • SHA-256: {APK_SHA256.slice(0,16)}… • {isAndroid ? "Tap to download on this phone" : "Open this page on your Android phone"}</div>
         <div style={{fontSize:10,color:"rgba(255,255,255,.4)",textAlign:"center",marginTop:6,wordBreak:"break-all"}}>Verified: {APK_SIZE} • SHA-256: {APK_SHA256} • If size differs, retry download.</div>
         <a href={RELEASE_URL} target="_blank" rel="noopener" style={{display:"block",textAlign:"center",fontSize:11,color:"#00E5FF",marginTop:10,textDecoration:"none"}}>View all releases on GitHub →</a>
       </div>
@@ -32,7 +101,7 @@ export default function InstallPage() {
         <div style={{fontSize:11,letterSpacing:1,color:"#FFC107",fontWeight:700}}>DOWNLOAD COMPLETE? NEXT STEPS</div>
         <div style={{fontSize:11,lineHeight:1.6,marginTop:8,color:"rgba(255,255,255,.7)"}}>
           After download reaches 100%:<br/>
-          1. Swipe down notification → tap <b>JARVIS-v2.1.0.apk</b> → <b>Install</b><br/>
+          1. Swipe down notification → tap <b>{APK_FILE}</b> → <b>Install</b><br/>
           2. If not in notifications: open <b>Files → Downloads</b> → tap APK<br/>
           3. If blocked: <b>Settings → Allow from this source</b> (Chrome) → then Install<br/>
           4. If update fails: <b>Uninstall old JARVIS first</b> (different signature) → then install
@@ -48,7 +117,7 @@ export default function InstallPage() {
           4. Open <b>JARVIS</b> from app drawer → grant Phone/Microphone/Notifications → set Call Screening role<br/>
           5. Enable <b>BUSY MODE</b> → close app → lock phone → call this phone from another phone to test
         </div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",marginTop:8}}>We never bypass Android security. The APK is signed and verified via GitHub Releases.</div>
+        <div style={{fontSize:10,color:"rgba(255,255,255,.35)",marginTop:8}}>We never bypass Android security. The APK is signed and verified via SHA-256 above.</div>
       </div>
 
       <div style={{background:"#111827",border:"1px solid #1E2A3A",borderRadius:16,padding:12,marginTop:12}}>

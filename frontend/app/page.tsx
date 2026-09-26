@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { API_URL, healthCheck, jarvisChat } from "../lib/api";
-import { CURRENT_APK_URL, CURRENT_APK_SIZE, CURRENT_APK_VERSION } from "../lib/apkConfig";
+import { CURRENT_APK_DOWNLOAD_ROUTE, CURRENT_APK_FILE, CURRENT_APK_SIZE, CURRENT_APK_VERSION } from "../lib/apkConfig";
 
 const statuses: Record<string, { label: string; sub: string; ack: string; color: string }> = {
   AVAILABLE: { label: "AVAILABLE", sub: "Calls ring normally", ack: "You're available, Shlok. I'll let calls through.", color: "#38E1FF" },
@@ -91,7 +91,7 @@ export default function Page() {
           <div style={{background:"#1A1C1D",border:"1px solid rgba(56,225,255,0.15)",borderRadius:20,padding:12,display:"flex",flexDirection:"column",gap:8,boxShadow:"0 0 20px rgba(56,225,255,0.08)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><div style={{fontSize:13,color:"#E3E2E4",fontWeight:600,letterSpacing:0.5}}>{isAndroid ? "Install JARVIS" : "Get JARVIS for Android"}</div><div style={{fontSize:10,color:"#BBC9CD",fontFamily:"JetBrains Mono"}}>Native APK • {CURRENT_APK_SIZE} • v{CURRENT_APK_VERSION} • One tap</div></div>
-              <a href={CURRENT_APK_URL} target="_blank" rel="noopener" onClick={()=>setDlStatus("downloading")} style={{display:"flex",alignItems:"center",gap:6,background:"#38E1FF",color:"#00363F",padding:"10px 14px",borderRadius:999,fontSize:11,fontWeight:700,letterSpacing:1,fontFamily:"JetBrains Mono",textDecoration:"none",whiteSpace:"nowrap",boxShadow:"0 0 12px rgba(56,225,255,0.4)"}}>↓ INSTALL</a>
+              <a href={CURRENT_APK_DOWNLOAD_ROUTE} download={CURRENT_APK_FILE} onClick={()=>setDlStatus("downloading")} style={{display:"flex",alignItems:"center",gap:6,background:"#38E1FF",color:"#00363F",padding:"10px 14px",borderRadius:999,fontSize:11,fontWeight:700,letterSpacing:1,fontFamily:"JetBrains Mono",textDecoration:"none",whiteSpace:"nowrap",boxShadow:"0 0 12px rgba(56,225,255,0.4)"}}>↓ INSTALL</a>
             </div>
             {dlStatus==="downloading" && <div style={{fontSize:10,color:"#38E1FF",fontFamily:"JetBrains Mono",textAlign:"center"}}>Downloading JARVIS…</div>}
             {dlStatus==="done" && <div style={{fontSize:10,color:"#38E1FF",fontFamily:"JetBrains Mono",textAlign:"center"}}>Download complete — open APK to install.</div>}
