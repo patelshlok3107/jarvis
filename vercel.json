@@ -1,7 +1,30 @@
 {
+  // NOTE: In the Vercel dashboard set Root Directory = "frontend".
+  // Commands below are relative to that root, so do NOT use --prefix.
+  // (Using --prefix here makes Vercel look for frontend/frontend/package.json.)
   "framework": "nextjs",
-  "buildCommand": "npm --prefix frontend run build",
-  "outputDirectory": "frontend/.next",
-  "installCommand": "npm --prefix frontend install",
-  "devCommand": "npm --prefix frontend run dev"
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "headers": [
+    {
+      "source": "/(.*)\\.apk",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment" },
+        { "key": "Accept-Ranges", "value": "bytes" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    },
+    {
+      "source": "/api/download",
+      "headers": [
+        { "key": "Accept-Ranges", "value": "bytes" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
 }
